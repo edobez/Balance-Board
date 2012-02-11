@@ -30,15 +30,14 @@ namespace BalanceBoard
 
         private static void Control()
         {
+
+            // Acquisizione dati ADC
             int[] AdcValues = new int[6];
 
             for (int i = 0; i < AdcValues.Length; i++)
             {
                 AdcValues[i] = aPin[i].Read();
             }
-
-
-
 
         }
     }

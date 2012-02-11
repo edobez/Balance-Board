@@ -1,10 +1,29 @@
 using System;
 using Microsoft.SPOT;
 
+using GHIElectronics.NETMF.System;
+
 namespace BalanceBoard
 {
     public class IMU
     {
+        #region Public Methods
+
+        public static float[] normalize3DVector(float[] vector)
+        {
+            float[] outArray = new float[3];
+            double R;
+            R = (vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2]);
+            R = MathEx.Sqrt(R);
+
+            outArray[0] /= (float)R;
+            outArray[1] /= (float)R;
+            outArray[2] /= (float)R;
+
+            return outArray;
+        }
+
+        #endregion
     }
 
     class Accelerometer
@@ -31,11 +50,12 @@ namespace BalanceBoard
         int _vRef;           // ADC voltage reference
         int[] _invert = new int[3];      // -1 if inverted, 1 otherwise
 
-        int[] _rawData = new int[3];     // data from the ADC
+        int[] _raw = new int[3];     // data from the ADC
         float[] _acc = new float[3];       // readings in g
         float[] _accNorm = new float[3];   // normalized 3D vector of acc[3]
 
         #endregion
+
 
         #region Properties
 
@@ -76,18 +96,84 @@ namespace BalanceBoard
             get { return _invert; }
             set
             {
-                _invert = value;
+                for (int i = 0; i < 3; i++)
+                {
+                    if (value[i] == 0 && value[i] == 1) _invert[i] = value[i];
+                    else _invert[i] = 0;
+                }
             }
+        }
+
+        public int[] Raw
+        {
+            get { return _raw; }
+            set
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    if (value[i] >= 0 && value[i] <= ADC_resolution) _raw[i] = value[i];
+                    else throw new ArgumentOutOfRangeException("value[i]", "Valore deve essere fra 0 e ADC_resolution");
+                }
+            }
+        }
+
+        public float[] Acc
+        {
+            get { return _acc; }
+        }
+
+        public float[] AccNorm
+        {
+            get { return _accNorm; }
         }
 
         #endregion
 
 
+        #region Construction / Deconstruction
 
         public Accelerometer(int sens, int offset, int vref, int[] invert)
         {
+            this.Sensivity = sens;
+            this.Offset = offset;
+            this.VRef = vref;
+            this.Invert = invert;
 
+            // Non so se serve e se bisogna mettere this.xxxx
+            for (int i = 0; i < 3; i++)
+            {
+                _raw[i] = 0;
+                _acc[i] = 0;
+                _accNorm[i] = 0;
+            }
         }
+
+        //Non sono sicuro che funzioni, soprattutto la parte new int....
+        public Accelerometer()
+            : this(d_sens, d_offset, d_vRef, new int[3]{1,1,1})
+        { }
+
+        #endregion
+
+
+        #region Private Methods
+
+        private void compute()
+        {
+            // Converte i dati grezzi dell'ADC in g
+            for(int i = 0; i < 3; i++)  
+            {
+                _acc[i] = _raw[i] * _vRef / ADC_resolution;
+                _acc[i] -= _offset;
+                _acc[i] /= _sens;
+                _acc[i] *= _invert[i];
+            }
+    
+            // Normalizza il vettore
+            _accNorm = IMU.normalize3DVector(_acc);
+        }
+
+        #endregion
     }
 
     class Gyroscope
