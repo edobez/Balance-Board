@@ -11,9 +11,9 @@ namespace BalanceBoard
 {
     public class Program
     {
-        static Accelerometer Acc;
+        static Accelerometer Acc = new Accelerometer();
         static Gyroscope Gyro = new Gyroscope();
-        static IMU Imu;
+        static IMU Imu = new IMU(Acc,Gyro);
 
         static AnalogIn[] aPin = new AnalogIn[6];
 
@@ -29,9 +29,9 @@ namespace BalanceBoard
             aPin[5] = new AnalogIn((AnalogIn.Pin)FEZ_Pin.AnalogIn.An5);
 
             // Inizializzazione sensore
-            Acc = new Accelerometer();
-            // La instanza del gyro l'ho lasciata fuori dal main per vedere che succede
-            Imu = new IMU(Acc, Gyro);
+            //Acc = new Accelerometer();
+            //Gyro = new Gyroscope();
+            //Imu = new IMU(Acc, Gyro);
 
             Timer control_timer = new Timer(new TimerCallback(Control), null, 0, 500);
 
@@ -42,23 +42,18 @@ namespace BalanceBoard
         {
             DateTime begin = DateTime.Now;
 
-            // Acquisizione dati ADC
-            //int[] adcValues = new int[6];
-            //for (int i = 0; i < adcValues.Length; i++) adcValues[i] = aPin[i].Read();
-            Acc.Raw[0] = aPin[0].Read()*10;
-            Acc.Raw[1] = aPin[1].Read()*10;
-            Acc.Raw[2] = aPin[2].Read()*10;
-
-            Gyro.Raw[0] = aPin[3].Read()*10;
-            Gyro.Raw[1] = aPin[4].Read()*10;
+            // Inserimento dati ADC nell'algoritmo
+            Acc.Raw = new int[] { 512, 512, 618 };
+            Gyro.Raw = new int[] { 416, 416 };
 
             Acc.compute();
             Gyro.compute();
             Imu.compute();
+
             TimeSpan duration = (DateTime.Now - begin);
 
             Debug.Print("Angles: " + Imu.AngleXZ + "," + Imu.AngleYZ);
-            Debug.Print("Duration: " + duration.Ticks);
+            Debug.Print("Duration: " + duration.Milliseconds);
 
         }
     }

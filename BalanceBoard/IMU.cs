@@ -70,6 +70,8 @@ namespace BalanceBoard
 
         public void compute()
         {
+            
+
             float temp;
 
             // Gestione tempo per l'integrazione
@@ -391,7 +393,7 @@ namespace BalanceBoard
             get { return _raw; }
             set
             {
-                for (int i = 0; i < 3; i++)
+                for (int i = 0; i < 2; i++)
                 {
                     if (value[i] >= 0 && value[i] <= ADC_RESOLUTION) _raw[i] = value[i];
                     else throw new ArgumentOutOfRangeException("value[i]", "Valore deve essere fra 0 e ADC_resolution");
