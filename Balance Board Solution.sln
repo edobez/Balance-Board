@@ -3,6 +3,12 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BalanceBoard", "BalanceBoard\BalanceBoard.csproj", "{7057EAF9-6419-404C-B60E-0EFED2412639}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroLiquidCrystal", "..\..\..\C#\microliquidcrystal-6668\Main\Source\MicroLiquidCrystal\MicroLiquidCrystal.csproj", "{B4B72543-E638-44F1-B096-9BBB6BD4698B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloWorld", "..\..\..\C#\microliquidcrystal-6668\Main\Source\Examples\HelloWorld\HelloWorld.csproj", "{0A30049C-C9C7-4C6E-B073-3013D0F30E5E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComplexTest", "..\..\..\C#\microliquidcrystal-6668\Main\Source\Examples\ComplexTest\ComplexTest.csproj", "{D464A9A4-F259-4601-BFF7-437E343DD1FC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug Emulatore|Any CPU = Debug Emulatore|Any CPU
@@ -19,6 +25,30 @@ Global
 		{7057EAF9-6419-404C-B60E-0EFED2412639}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7057EAF9-6419-404C-B60E-0EFED2412639}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7057EAF9-6419-404C-B60E-0EFED2412639}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{B4B72543-E638-44F1-B096-9BBB6BD4698B}.Debug Emulatore|Any CPU.ActiveCfg = Debug|Any CPU
+		{B4B72543-E638-44F1-B096-9BBB6BD4698B}.Debug Emulatore|Any CPU.Build.0 = Debug|Any CPU
+		{B4B72543-E638-44F1-B096-9BBB6BD4698B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B4B72543-E638-44F1-B096-9BBB6BD4698B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B4B72543-E638-44F1-B096-9BBB6BD4698B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B4B72543-E638-44F1-B096-9BBB6BD4698B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A30049C-C9C7-4C6E-B073-3013D0F30E5E}.Debug Emulatore|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A30049C-C9C7-4C6E-B073-3013D0F30E5E}.Debug Emulatore|Any CPU.Build.0 = Debug|Any CPU
+		{0A30049C-C9C7-4C6E-B073-3013D0F30E5E}.Debug Emulatore|Any CPU.Deploy.0 = Debug|Any CPU
+		{0A30049C-C9C7-4C6E-B073-3013D0F30E5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A30049C-C9C7-4C6E-B073-3013D0F30E5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A30049C-C9C7-4C6E-B073-3013D0F30E5E}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{0A30049C-C9C7-4C6E-B073-3013D0F30E5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A30049C-C9C7-4C6E-B073-3013D0F30E5E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A30049C-C9C7-4C6E-B073-3013D0F30E5E}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{D464A9A4-F259-4601-BFF7-437E343DD1FC}.Debug Emulatore|Any CPU.ActiveCfg = Debug|Any CPU
+		{D464A9A4-F259-4601-BFF7-437E343DD1FC}.Debug Emulatore|Any CPU.Build.0 = Debug|Any CPU
+		{D464A9A4-F259-4601-BFF7-437E343DD1FC}.Debug Emulatore|Any CPU.Deploy.0 = Debug|Any CPU
+		{D464A9A4-F259-4601-BFF7-437E343DD1FC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D464A9A4-F259-4601-BFF7-437E343DD1FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D464A9A4-F259-4601-BFF7-437E343DD1FC}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{D464A9A4-F259-4601-BFF7-437E343DD1FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D464A9A4-F259-4601-BFF7-437E343DD1FC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D464A9A4-F259-4601-BFF7-437E343DD1FC}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

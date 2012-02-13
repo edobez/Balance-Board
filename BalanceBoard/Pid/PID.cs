@@ -19,9 +19,14 @@ namespace PIDLibrary
         private double errSum;
 
         //Reading/Writing Values
-        private GetDouble readPV;
-        private GetDouble readSP;
-        private SetDouble writeOV;
+        //private GetDouble readPV;
+        //private GetDouble readSP;
+        //private SetDouble writeOV;
+
+        //Storing PV,SP,OV
+        private double pv;
+        private double sp;
+        private double ov;
 
         //Max/Min Calculation
         private double pvMax;
@@ -30,12 +35,29 @@ namespace PIDLibrary
         private double outMin;
 
         //Threading and Timing
-        private double computeHz = 1.0f;
-        private Thread runThread;
+        //private double computeHz = 1.0f;
+        //private Thread runThread;
 
         #endregion
 
         #region Properties
+
+        public double ProcessVariable
+        {
+            get { return pv; }
+            set { pv = value; }
+        }
+
+        public double SetPoint
+        {
+            get { return sp; }
+            set { sp = value; }
+        }
+
+        public double OutputValue
+        {
+            get { return ov; }
+        }
 
         public double PGain
         {
@@ -79,18 +101,17 @@ namespace PIDLibrary
             set { outMax = value; }
         }
 
-        public bool PIDOK
-        {
-            get { return runThread != null; }
-        }
+        //public bool PIDOK
+        //{
+        //    get { return runThread != null; }
+        //}
 
         #endregion
 
         #region Construction / Deconstruction
 
         public PID(double pG, double iG, double dG,
-            double pMax, double pMin, double oMax, double oMin,
-            GetDouble pvFunc, GetDouble spFunc, SetDouble outFunc)
+            double pMin, double pMax, double oMin, double oMax)
         {
             kp = pG;
             ki = iG;
@@ -99,42 +120,99 @@ namespace PIDLibrary
             pvMin = pMin;
             outMax = oMax;
             outMin = oMin;
-            readPV = pvFunc;
-            readSP = spFunc;
-            writeOV = outFunc;
+            //readPV = pvFunc;
+            //readSP = spFunc;
+            //writeOV = outFunc;
         }
 
-        ~PID()
-        {
-            Disable();
-            readPV = null;
-            readSP = null;
-            writeOV = null;
-        }
+        //~PID()
+        //{
+        //    Disable();
+        //    readPV = null;
+        //    readSP = null;
+        //    writeOV = null;
+        //}
 
         #endregion
 
         #region Public Methods
 
-        public void Enable()
+        public void Compute()
         {
-            if (runThread != null)
-                return;
+            //if (readPV == null || readSP == null || writeOV == null)
+            //    return;
 
-            Reset();
+            //double pv = readPV();
+            //double sp = readSP();
 
-            runThread = new Thread(new ThreadStart(Run));
-            runThread.Start();
+            //We need to scale the pv to +/- 100%, but first clamp it
+            pv = Clamp(pv, pvMin, pvMax);
+            pv = ScaleValue(pv, pvMin, pvMax, -1.0f, 1.0f);
+
+            //We also need to scale the setpoint
+            sp = Clamp(sp, pvMin, pvMax);
+            sp = ScaleValue(sp, pvMin, pvMax, -1.0f, 1.0f);
+
+            //Now the error is in percent...
+            double err = sp - pv;
+
+            double pTerm = err * kp;
+            double iTerm = 0.0f;
+            double dTerm = 0.0f;
+
+            double partialSum = 0.0f;
+            DateTime nowTime = DateTime.Now;
+
+            // Non sono sicuro che MinValue possa essere uguale a NULL
+            if (lastUpdate != DateTime.MinValue)
+            {
+                double dT = (double)(nowTime - lastUpdate).Milliseconds / (double)1000;
+
+                //Compute the integral if we have to...
+                if (pv >= pvMin && pv <= pvMax)
+                {
+                    partialSum = errSum + dT * err;
+                    iTerm = ki * partialSum;
+                }
+
+                if (dT != 0.0f)
+                    dTerm = kd * (pv - lastPV) / dT;
+            }
+
+            lastUpdate = nowTime;
+            errSum = partialSum;
+            lastPV = pv;
+
+            //Now we have to scale the output value to match the requested scale
+            double outReal = pTerm + iTerm + dTerm;
+
+            outReal = Clamp(outReal, -1.0f, 1.0f);
+            outReal = ScaleValue(outReal, -1.0f, 1.0f, outMin, outMax);
+
+            //Write it out to the world
+            //writeOV(outReal);
+            ov = outReal;
         }
 
-        public void Disable()
-        {
-            if (runThread == null)
-                return;
+        //public void Enable()
+        //{
+        //    if (runThread != null)
+        //        return;
 
-            runThread.Abort();
-            runThread = null;
-        }
+        //    Reset();
+
+        //    runThread = new Thread(new ThreadStart(Run));
+        //    runThread.Start();
+        //}
+
+        //public void Disable()
+        //{
+        //    if (runThread == null)
+        //        return;
+
+        //    runThread.Abort();
+        //    runThread = null;
+        //}
 
         public void Reset()
         {
@@ -165,86 +243,30 @@ namespace PIDLibrary
             return value;
         }
 
-        private void Compute()
-        {
-            if (readPV == null || readSP == null || writeOV == null)
-                return;
-
-            double pv = readPV();
-            double sp = readSP();
-
-            //We need to scale the pv to +/- 100%, but first clamp it
-            pv = Clamp(pv, pvMin, pvMax);
-            pv = ScaleValue(pv, pvMin, pvMax, -1.0f, 1.0f);
-
-            //We also need to scale the setpoint
-            sp = Clamp(sp, pvMin, pvMax);
-            sp = ScaleValue(sp, pvMin, pvMax, -1.0f, 1.0f);
-
-            //Now the error is in percent...
-            double err = sp - pv;
-
-            double pTerm = err * kp;
-            double iTerm = 0.0f;
-            double dTerm = 0.0f;
-
-            double partialSum = 0.0f;
-            DateTime nowTime = DateTime.Now;
-
-            // Non sono sicuro che MinValue possa essere uguale a NULL
-            if (lastUpdate != DateTime.MinValue)
-            {
-                double dT = (nowTime - lastUpdate).Seconds;
-
-                //Compute the integral if we have to...
-                if (pv >= pvMin && pv <= pvMax)
-                {
-                    partialSum = errSum + dT * err;
-                    iTerm = ki * partialSum;
-                }
-
-                if (dT != 0.0f)
-                    dTerm = kd * (pv - lastPV) / dT;
-            }
-
-            lastUpdate = nowTime;
-            errSum = partialSum;
-            lastPV = pv;
-
-            //Now we have to scale the output value to match the requested scale
-            double outReal = pTerm + iTerm + dTerm;
-
-            outReal = Clamp(outReal, -1.0f, 1.0f);
-            outReal = ScaleValue(outReal, -1.0f, 1.0f, outMin, outMax);
-
-            //Write it out to the world
-            writeOV(outReal);
-        }
-
         #endregion
 
-        #region Threading
+        //#region Threading
 
-        private void Run()
-        {
+        //private void Run()
+        //{
 
-            while (true)
-            {
-                try
-                {
-                    int sleepTime = (int)(1000 / computeHz);
-                    Thread.Sleep(sleepTime);
-                    Compute();
-                }
-                catch (Exception e)
-                {
+        //    while (true)
+        //    {
+        //        try
+        //        {
+        //            int sleepTime = (int)(1000 / computeHz);
+        //            Thread.Sleep(sleepTime);
+        //            Compute();
+        //        }
+        //        catch (Exception e)
+        //        {
 
-                }
-            }
+        //        }
+        //    }
 
-        }
+        //}
 
-        #endregion
+        //#endregion
 
     }
 }
