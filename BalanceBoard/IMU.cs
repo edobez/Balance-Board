@@ -111,7 +111,7 @@ namespace BalanceBoard
                     for(int i=0;i<2;i++)
                     {
                         temp = oGyro.Gyro[i];
-                        temp *= _deltaTime.Seconds;
+                        temp *= _deltaTime.Milliseconds / (float)1000;
 
                         _Awz[i] = (float) MathEx.Atan2(_RwEst[i],_RwEst[2]);
                         _Awz[i] = _Awz[i] * 180 / (float)System.Math.PI;

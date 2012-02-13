@@ -331,6 +331,16 @@ namespace MicroLiquidCrystal
             Write(buffer, 0, buffer.Length);
         }
 
+        public void Write2(string text)
+        {
+            while (text.Length <= _numColumns)
+            {
+                text = text + " ";
+            }
+
+            Write(text);
+        }
+
         /// <summary>
         /// Writes a specified number of bytes to the LCD using data from a buffer.
         /// </summary>

@@ -6,6 +6,7 @@ using Microsoft.SPOT.Hardware;
 
 using GHIElectronics.NETMF.FEZ;
 using GHIElectronics.NETMF.Hardware;
+using GHIElectronics.NETMF.USBClient;
 
 using PIDLibrary;
 using MicroLiquidCrystal;
@@ -14,8 +15,14 @@ namespace BalanceBoard
 {
     public class Program
     {
+        // Definizione ingressi                
         static AnalogIn[] aPin = new AnalogIn[6];
+        static InterruptPort menuBut = new InterruptPort((Cpu.Pin)FEZ_Pin.Digital.Di36, true, Port.ResistorMode.PullDown, Port.InterruptMode.InterruptEdgeLow);
+        static InterruptPort enterBut = new InterruptPort((Cpu.Pin)FEZ_Pin.Digital.Di34, true, Port.ResistorMode.PullDown, Port.InterruptMode.InterruptEdgeLow);
+        static InterruptPort upBut = new InterruptPort((Cpu.Pin)FEZ_Pin.Digital.Di32, true, Port.ResistorMode.PullDown, Port.InterruptMode.InterruptEdgeLow);
+        static InterruptPort downBut = new InterruptPort((Cpu.Pin)FEZ_Pin.Digital.Di30, true, Port.ResistorMode.PullDown, Port.InterruptMode.InterruptEdgeLow);
 
+        // Definizioni oggetti
         static Accelerometer Acc = new Accelerometer();
         static Gyroscope Gyro = new Gyroscope();
         static IMU Imu = new IMU(Acc,Gyro);
@@ -23,13 +30,15 @@ namespace BalanceBoard
         static PID Pid1 = new PID(1, 0.01, 0, -90, 90, -90, 90);
         static PID Pid2 = new PID(1, 0.01, 0, -90, 90, -90, 90);
 
+        // Definizioni per LCD
         static Lcd myLcd;
+        static byte currentMenu;
 
+        // Definizioni var. globali
         static TimeSpan duration;
 
-        
         static int[] adcAcc = new int[] { 512, 512, 618 };       // inserimento dati ADC
-        static int[] adcGyro = new int[] { 416, 416 }; 
+        static int[] adcGyro = new int[] { 500, 416 };
 
         public static void Main()
         {
@@ -45,23 +54,21 @@ namespace BalanceBoard
             var lcdProvider = new GpioLcdTransferProvider((Cpu.Pin)FEZ_Pin.Digital.Di2, (Cpu.Pin)FEZ_Pin.Digital.Di3,
                 (Cpu.Pin)FEZ_Pin.Digital.Di4, (Cpu.Pin)FEZ_Pin.Digital.Di5, (Cpu.Pin)FEZ_Pin.Digital.Di6,
                 (Cpu.Pin)FEZ_Pin.Digital.Di7);
-
             myLcd = new Lcd(lcdProvider);
             myLcd.Begin(16, 2);
 
+            // Eventi interrupt
+            menuBut.OnInterrupt += new NativeEventHandler(menuBut_OnInterrupt);
+            enterBut.OnInterrupt += new NativeEventHandler(enterBut_OnInterrupt);
+
             // Definizione timer
             Timer control_timer = new Timer(new TimerCallback(Control), null, 0, 20);
-            Timer display_timer = new Timer(new TimerCallback(Display), null, 0, 250);
-
-            //while (true)
-            //{
-            //    myLcd.SetCursorPosition(0, 1);
-            //    myLcd.Write(DateTime.Now.Millisecond.ToString());
-            //    Thread.Sleep(250);
-            //}
+            Timer display_timer = new Timer(new TimerCallback(Display), null, 0, 500);
 
             Thread.Sleep(Timeout.Infinite);
         }
+
+
 
         private static void Control(object state)
         {
@@ -90,14 +97,47 @@ namespace BalanceBoard
 
         private static void Display(object state)    
         {
-            Debug.Print("Angles: " + Imu.AngleXZ.ToString("f3") + "," + Imu.AngleYZ.ToString("f3"));
-            Debug.Print("Output variables: " + Pid1.OutputValue.ToString("f3") + "," + Pid2.OutputValue.ToString("f3"));
-            Debug.Print("Duration: " + duration.Milliseconds);
+            //Debug.Print("Angles: " + Imu.AngleXZ.ToString("f3") + "," + Imu.AngleYZ.ToString("f3"));
+            //Debug.Print("Output variables: " + Pid1.OutputValue.ToString("f3") + "," + Pid2.OutputValue.ToString("f3"));
+            //Debug.Print("Duration: " + duration.Ticks);
 
-            myLcd.SetCursorPosition(0, 0);
-            myLcd.Write(Imu.AngleXZ.ToString("f3") + "," + Imu.AngleYZ.ToString("f3"));
-            myLcd.SetCursorPosition(0,1);
-            myLcd.Write("PID:" + Pid1.OutputValue.ToString("f2") + "," + Pid2.OutputValue.ToString("f2"));
+            switch (currentMenu)
+            {
+                case 0:
+                    myLcd.SetCursorPosition(0, 0);
+                    myLcd.Write2("Angles");
+                    myLcd.SetCursorPosition(0, 1);
+                    myLcd.Write(Imu.AngleXZ.ToString("f5") + "," + Imu.AngleYZ.ToString("f5"));
+                    break;
+                case 1:
+                    myLcd.SetCursorPosition(0, 0);
+                    myLcd.Write2("PID values");
+                    myLcd.SetCursorPosition(0, 1);
+                    myLcd.Write(Pid1.OutputValue.ToString("f4") + "," + Pid2.OutputValue.ToString("f4"));
+                    break;
+                case 2:
+                    myLcd.SetCursorPosition(0, 0);
+                    myLcd.Write2("ADC readings");
+                    myLcd.SetCursorPosition(0, 1);
+                    myLcd.Write("                ");
+                    break;
+                default:
+                    myLcd.SetCursorPosition(0, 0);
+                    myLcd.Write2("Errore");
+                    break;
+            }
+        }
+
+        static void menuBut_OnInterrupt(uint data1, uint data2, DateTime time)
+        {
+            Debug.Print("menuBut pressed!");
+            currentMenu++;
+            if (currentMenu > 2) currentMenu = 0;
+        }
+
+        static void enterBut_OnInterrupt(uint data1, uint data2, DateTime time)
+        {
+            Debug.Print("enterBut pressed!");
         }
     }
 }
