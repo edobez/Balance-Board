@@ -1,19 +1,16 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1" MembersFormat="FullSignature">
   <Class Name="Menu.MenuManager">
-    <Position X="0.5" Y="0.5" Width="4" />
-    <Members>
-      <Method Name="MenuManager" Hidden="true" />
-    </Members>
+    <Position X="0.5" Y="0.5" Width="2.5" />
     <TypeIdentifier>
-      <HashCode>AAAEAACAAAEAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAiA=</HashCode>
+      <HashCode>AAAABAAAAACAAAAAAIgBAAAAQIAAAAAAAAAAEAAAAgA=</HashCode>
       <FileName>Menu.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Menu.MenuItem">
-    <Position X="5.25" Y="0.5" Width="3.5" />
+    <Position X="4" Y="0.5" Width="3.75" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAQAAAAAAAAAAAABAQAACAAAAABgAAAAAAAQAA=</HashCode>
+      <HashCode>EDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>Menu.cs</FileName>
     </TypeIdentifier>
   </Class>
