@@ -17,10 +17,13 @@ namespace BalanceBoard
     {
         // Definizione ingressi                
         static AnalogIn[] aPin = new AnalogIn[6];
-        static InterruptPort menuBut = new InterruptPort((Cpu.Pin)FEZ_Pin.Digital.Di36, true, Port.ResistorMode.PullDown, Port.InterruptMode.InterruptEdgeLow);
-        static InterruptPort enterBut = new InterruptPort((Cpu.Pin)FEZ_Pin.Digital.Di34, true, Port.ResistorMode.PullDown, Port.InterruptMode.InterruptEdgeLow);
-        static InterruptPort upBut = new InterruptPort((Cpu.Pin)FEZ_Pin.Digital.Di32, true, Port.ResistorMode.PullDown, Port.InterruptMode.InterruptEdgeLow);
-        static InterruptPort downBut = new InterruptPort((Cpu.Pin)FEZ_Pin.Digital.Di30, true, Port.ResistorMode.PullDown, Port.InterruptMode.InterruptEdgeLow);
+        static InterruptPort menuBut = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di11, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
+        static InterruptPort enterBut = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di34, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
+        static InterruptPort upBut = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di32, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
+        static InterruptPort downBut = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di30, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
+
+        // Definizione uscite
+        static OutputPort led = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.LED, false);
 
         // Definizioni oggetti
         static Accelerometer Acc = new Accelerometer();
@@ -36,6 +39,7 @@ namespace BalanceBoard
 
         // Definizioni var. globali
         static TimeSpan duration;
+        static DateTime begin;
 
         static int[] adcAcc = new int[] { 512, 512, 618 };       // inserimento dati ADC
         static int[] adcGyro = new int[] { 500, 416 };
@@ -56,6 +60,7 @@ namespace BalanceBoard
                 (Cpu.Pin)FEZ_Pin.Digital.Di7);
             myLcd = new Lcd(lcdProvider);
             myLcd.Begin(16, 2);
+            myLcd.ShowCursor = true;
 
             // Eventi interrupt
             menuBut.OnInterrupt += new NativeEventHandler(menuBut_OnInterrupt);
@@ -69,10 +74,9 @@ namespace BalanceBoard
         }
 
 
-
         private static void Control(object state)
         {
-            DateTime begin = DateTime.Now;
+            begin = DateTime.Now;
 
             // Algoritmo angolo
             Acc.Raw = adcAcc;       // inserimento dati ADC
@@ -93,13 +97,18 @@ namespace BalanceBoard
 
             duration = (DateTime.Now - begin);
 
+            //Debug.Assert(Imu.AngleXZ >= 1.9);
+
+            // In teoria velocizza lo scheduling...
+            Thread.Sleep(0);
+
         }
 
         private static void Display(object state)    
         {
             //Debug.Print("Angles: " + Imu.AngleXZ.ToString("f3") + "," + Imu.AngleYZ.ToString("f3"));
             //Debug.Print("Output variables: " + Pid1.OutputValue.ToString("f3") + "," + Pid2.OutputValue.ToString("f3"));
-            //Debug.Print("Duration: " + duration.Ticks);
+            //Debug.Print("Control run time: " + duration.Milliseconds);
 
             switch (currentMenu)
             {
@@ -126,18 +135,33 @@ namespace BalanceBoard
                     myLcd.Write2("Errore");
                     break;
             }
+
+            // In teoria velocizza lo scheduling...
+            Thread.Sleep(0);
         }
 
         static void menuBut_OnInterrupt(uint data1, uint data2, DateTime time)
         {
-            Debug.Print("menuBut pressed!");
+            //Debug.Print("menuBut pressed!");
             currentMenu++;
             if (currentMenu > 2) currentMenu = 0;
+            menuBut.ClearInterrupt();
         }
 
         static void enterBut_OnInterrupt(uint data1, uint data2, DateTime time)
         {
-            Debug.Print("enterBut pressed!");
+            //Debug.Print("enterBut pressed!");
+            Thread test = new Thread(blink);
+            test.Priority = ThreadPriority.BelowNormal;
+            test.Start();
+        }
+
+        static void blink()
+        {
+            led.Write(true);
+            Thread.Sleep(1000);
+            led.Write(false);
+            Thread.Sleep(0);
         }
     }
 }
