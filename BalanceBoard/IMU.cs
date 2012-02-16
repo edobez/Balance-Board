@@ -163,23 +163,23 @@ namespace BalanceBoard
     {
         #region Fields
 
-        const int d_sens = 340;
-        const int min_sens = 0;
-        const int max_sens = 3000;
+        const float D_SENS = 300;
+        const float MIN_SENS = 250;
+        const float MAX_SENS = 350;
 
-        const int d_offset = 1650;
-        const int min_offset = 0;
-        const int max_offset = 3000;
+        const float D_OFFSET = 1500;
+        const float MIN_OFFSET = 1200;
+        const float MAX_OFFSET = 1800;
 
-        const int d_vRef = 3300;
-        const int min_vRef = 1500;
-        const int max_vRef = 5000;
+        const int D_VREF = 3300;
+        const int MIN_VREF = 1500;
+        const int MAX_VREF = 5000;
 
-        const int d_invert = 1;
-        const int ADC_resolution = 1023;
+        const int D_INVERT = 1;
+        const int ADC_RES = 1023;
 
-        int _sens;           // mV / g
-        int _offset;         // zero level (mV) @ 0g
+        float _sens;           // mV / g
+        float _offset;         // zero level (mV) @ 0g
         int _vRef;           // ADC voltage reference
         int[] _invert = new int[3];      // -1 if inverted, 1 otherwise
 
@@ -192,23 +192,23 @@ namespace BalanceBoard
 
         #region Properties
 
-        public int Sensivity
+        public float Sensivity
         {
             get { return _sens; }
             set
             {
-                if (value >= min_sens && value <= max_sens) _sens = value;
-                else _sens = d_sens;
+                if (value >= MIN_SENS && value <= MAX_SENS) _sens = value;
+                else _sens = D_SENS;
             }
         }
 
-        public int Offset
+        public float Offset
         {
             get { return _offset; }
             set
             {
-                if (value >= min_offset && value <= max_offset) _offset = value;
-                else _offset = d_offset;
+                if (value >= MIN_OFFSET && value <= MAX_OFFSET) _offset = value;
+                else _offset = D_OFFSET;
             }
         }
 
@@ -219,8 +219,8 @@ namespace BalanceBoard
             get { return _vRef; }
             set
             {
-                if (value > min_vRef && value < max_vRef) _vRef = value;
-                else _vRef = d_vRef;
+                if (value > MIN_VREF && value < MAX_VREF) _vRef = value;
+                else _vRef = D_VREF;
             }
         }
 
@@ -244,9 +244,17 @@ namespace BalanceBoard
             {
                 for (int i = 0; i < 3; i++)
                 {
-                    if (value[i] >= 0 && value[i] <= ADC_resolution) _raw[i] = value[i];
+                    if (value[i] >= 0 && value[i] <= ADC_RES) _raw[i] = value[i];
                     else throw new ArgumentOutOfRangeException("value[i]", "Valore deve essere fra 0 e ADC_resolution");
                 }
+            }
+        }
+
+        public float[] RawMV
+        {
+            get
+            {
+                return new float[] { (float)Raw[0] / 1024 * 3300, (float)Raw[1] / 1024 * 3300, (float)Raw[2] / 1024 * 3300 };
             }
         }
 
@@ -265,7 +273,7 @@ namespace BalanceBoard
 
         #region Construction / Deconstruction
 
-        public Accelerometer(int sens, int offset, int vref, int[] invert)
+        public Accelerometer(float sens, float offset, int vref, int[] invert)
         {
             Sensivity = sens;
             Offset = offset;
@@ -283,7 +291,7 @@ namespace BalanceBoard
 
         //Non sono sicuro che funzioni, soprattutto la parte new int....
         public Accelerometer()
-            : this(d_sens, d_offset, d_vRef, new int[3] { 1, 1, 1 })
+            : this(D_SENS, D_OFFSET, D_VREF, new int[3] { 1, 1, 1 })
         { }
 
         #endregion
@@ -296,7 +304,7 @@ namespace BalanceBoard
             // Converte i dati grezzi dell'ADC in g
             for (int i = 0; i < 3; i++)
             {
-                _acc[i] = _raw[i] * _vRef / ADC_resolution;
+                _acc[i] = _raw[i] * _vRef / ADC_RES;
                 _acc[i] -= _offset;
                 _acc[i] /= _sens;
                 _acc[i] *= _invert[i];
@@ -329,8 +337,8 @@ namespace BalanceBoard
         const int D_INVERT = 1;
         const int ADC_RESOLUTION = 1023;
 
-        int _sens;                          // mV / deg/sec
-        int _offset;                        // zero level (mV) @ 0 deg/sec
+        float _sens;                          // mV / deg/sec
+        float _offset;                        // zero level (mV) @ 0 deg/sec
         int _vRef;                          // ADC voltage reference
         int[] _invert = new int[2];         // -1 if inverted, 1 otherwise
 
@@ -343,7 +351,7 @@ namespace BalanceBoard
 
         #region Properties
 
-        public int Sensivity
+        public float Sensivity
         {
             get { return _sens; }
             set
@@ -353,7 +361,7 @@ namespace BalanceBoard
             }
         }
 
-        public int Offset
+        public float Offset
         {
             get { return _offset; }
             set
@@ -398,6 +406,14 @@ namespace BalanceBoard
                     if (value[i] >= 0 && value[i] <= ADC_RESOLUTION) _raw[i] = value[i];
                     else throw new ArgumentOutOfRangeException("value[i]", "Valore deve essere fra 0 e ADC_resolution");
                 }
+            }
+        }
+
+        public float[] RawMV
+        {
+            get
+            {
+                return new float[] { (float)Raw[0] / 1024 * 3300, (float)Raw[1] / 1024 * 3300 };
             }
         }
 

@@ -24,14 +24,15 @@ namespace BalanceBoard
 
         // Definizione uscite
         static OutputPort led = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.LED, false);
+        static PWM Motor1 = new PWM(PWM.Pin.PWM1);
 
         // Definizioni oggetti
         static Accelerometer Acc = new Accelerometer();
         static Gyroscope Gyro = new Gyroscope();
         static IMU Imu = new IMU(Acc,Gyro);
 
-        static PID Pid1 = new PID(1, 0.01, 0, -90, 90, -90, 90);
-        static PID Pid2 = new PID(1, 0.01, 0, -90, 90, -90, 90);
+        static PID Pid1 = new PID(1.7, 0.2 , 0.5, -90, 90, 0, 100);
+        static PID Pid2 = new PID(1, 0, 0, -90, 90, 0, 100);
 
         // Definizioni per LCD
         static Lcd myLcd;
@@ -40,9 +41,7 @@ namespace BalanceBoard
         // Definizioni var. globali
         static TimeSpan duration;
         static DateTime begin;
-
-        static int[] adcAcc = new int[] { 512, 512, 618 };       // inserimento dati ADC
-        static int[] adcGyro = new int[] { 500, 416 };
+        static int[] adc = new int[6];
 
         public static void Main()
         {
@@ -60,14 +59,20 @@ namespace BalanceBoard
                 (Cpu.Pin)FEZ_Pin.Digital.Di7);
             myLcd = new Lcd(lcdProvider);
             myLcd.Begin(16, 2);
-            myLcd.ShowCursor = true;
+            myLcd.ShowCursor = false;
+
+            // Modifica proprieta' sensore
+            (new int[] { -1, -1, -1 }).CopyTo(Acc.Invert, 0);   // tutti gli invert a -1
+            (new int[] { -1, -1 }).CopyTo(Gyro.Invert, 0);      // ....
+            Acc.Offset = 1650;
+            Gyro.Offset = 1325;
 
             // Eventi interrupt
             menuBut.OnInterrupt += new NativeEventHandler(menuBut_OnInterrupt);
             enterBut.OnInterrupt += new NativeEventHandler(enterBut_OnInterrupt);
 
             // Definizione timer
-            Timer control_timer = new Timer(new TimerCallback(Control), null, 0, 20);
+            Timer control_timer = new Timer(new TimerCallback(Control), null, 0, 10);
             Timer display_timer = new Timer(new TimerCallback(Display), null, 0, 500);
 
             Thread.Sleep(Timeout.Infinite);
@@ -79,8 +84,13 @@ namespace BalanceBoard
             begin = DateTime.Now;
 
             // Algoritmo angolo
-            Acc.Raw = adcAcc;       // inserimento dati ADC
-            Gyro.Raw = adcGyro;      // ...
+            for (int i = 0; i < 6; i++)
+            {
+                adc[i] = aPin[i].Read();
+            }
+
+            Array.Copy(adc, 0, Acc.Raw, 0, 3);
+            Array.Copy(adc, 3, Gyro.Raw, 0, 2);
 
             Acc.compute();
             Gyro.compute();
@@ -95,9 +105,9 @@ namespace BalanceBoard
             Pid1.Compute();
             Pid2.Compute();
 
-            duration = (DateTime.Now - begin);
+            Motor1.Set(20000, (byte)Pid1.OutputValue);
 
-            //Debug.Assert(Imu.AngleXZ >= 1.9);
+            duration = (DateTime.Now - begin);
 
             // In teoria velocizza lo scheduling...
             Thread.Sleep(0);
@@ -108,27 +118,33 @@ namespace BalanceBoard
         {
             //Debug.Print("Angles: " + Imu.AngleXZ.ToString("f3") + "," + Imu.AngleYZ.ToString("f3"));
             //Debug.Print("Output variables: " + Pid1.OutputValue.ToString("f3") + "," + Pid2.OutputValue.ToString("f3"));
-            //Debug.Print("Control run time: " + duration.Milliseconds);
+            Debug.Print("Control run time: " + duration.Milliseconds);
 
             switch (currentMenu)
             {
                 case 0:
                     myLcd.SetCursorPosition(0, 0);
-                    myLcd.Write2("Angles");
+                    myLcd.Write2("Angoli");
                     myLcd.SetCursorPosition(0, 1);
-                    myLcd.Write(Imu.AngleXZ.ToString("f5") + "," + Imu.AngleYZ.ToString("f5"));
+                    myLcd.Write2(Imu.AngleXZ.ToString("f0") + "," + Imu.AngleYZ.ToString("f0"));
                     break;
                 case 1:
                     myLcd.SetCursorPosition(0, 0);
                     myLcd.Write2("PID values");
                     myLcd.SetCursorPosition(0, 1);
-                    myLcd.Write(Pid1.OutputValue.ToString("f4") + "," + Pid2.OutputValue.ToString("f4"));
+                    myLcd.Write2(Pid1.OutputValue.ToString("f0") + "," + Pid2.OutputValue.ToString("f0"));
                     break;
                 case 2:
                     myLcd.SetCursorPosition(0, 0);
-                    myLcd.Write2("ADC readings");
+                    myLcd.Write2("ADC readings 1");
                     myLcd.SetCursorPosition(0, 1);
-                    myLcd.Write("                ");
+                    myLcd.Write2(Acc.RawMV[0].ToString("f0") + "," + Acc.RawMV[1].ToString("f0") + "," + Acc.RawMV[2].ToString("f0"));
+                    break;
+                case 3:
+                    myLcd.SetCursorPosition(0, 0);
+                    myLcd.Write2("ADC readings 2");
+                    myLcd.SetCursorPosition(0, 1);
+                    myLcd.Write2(Gyro.RawMV[0].ToString("f0") + "," + Gyro.RawMV[1].ToString("f0"));
                     break;
                 default:
                     myLcd.SetCursorPosition(0, 0);
@@ -143,9 +159,10 @@ namespace BalanceBoard
         static void menuBut_OnInterrupt(uint data1, uint data2, DateTime time)
         {
             //Debug.Print("menuBut pressed!");
+            //menuBut.DisableInterrupt();
             currentMenu++;
-            if (currentMenu > 2) currentMenu = 0;
-            menuBut.ClearInterrupt();
+            if (currentMenu > 3) currentMenu = 0;
+            //menuBut.EnableInterrupt();
         }
 
         static void enterBut_OnInterrupt(uint data1, uint data2, DateTime time)
