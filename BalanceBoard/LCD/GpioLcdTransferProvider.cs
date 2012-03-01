@@ -33,12 +33,12 @@ namespace MicroLiquidCrystal
         { }
 
         /// <summary>
-        /// Creates a variable of type LiquidCrystal. The display can be controlled using 4 or 8 data lines. If the former, omit the pin numbers for d0 to d3 and leave those lines unconnected. The RW pin can be tied to ground instead of connected to a pin on the Arduino; if so, omit it from this function's parameters. 
+        /// Creates a variable of type LiquidCrystal. The display can be controlled using 4 or 8 data lines. If the former, omit the m_pin numbers for d0 to d3 and leave those lines unconnected. The RW m_pin can be tied to ground instead of connected to a m_pin on the Arduino; if so, omit it from this function's parameters. 
         /// </summary>
         /// <param name="fourBitMode"></param>
-        /// <param name="rs">The number of the CPU pin that is connected to the RS (register select) pin on the LCD.</param>
-        /// <param name="rw">The number of the CPU pin that is connected to the RW (Read/Write) pin on the LCD (optional).</param>
-        /// <param name="enable">the number of the CPU pin that is connected to the enable pin on the LCD.</param>
+        /// <param name="rs">The number of the CPU m_pin that is connected to the RS (register select) m_pin on the LCD.</param>
+        /// <param name="rw">The number of the CPU m_pin that is connected to the RW (Read/Write) m_pin on the LCD (optional).</param>
+        /// <param name="enable">the number of the CPU m_pin that is connected to the enable m_pin on the LCD.</param>
         /// <param name="d0"></param>
         /// <param name="d1"></param>
         /// <param name="d2"></param>
@@ -56,7 +56,7 @@ namespace MicroLiquidCrystal
             if (rs == Cpu.Pin.GPIO_NONE) throw new ArgumentException("rs");
             _rsPort = new OutputPort(rs, false);
 
-            // we can save 1 pin by not using RW. Indicate by passing Cpu.Pin.GPIO_NONE instead of pin#
+            // we can save 1 m_pin by not using RW. Indicate by passing Cpu.Pin.GPIO_NONE instead of m_pin#
             if (rw != Cpu.Pin.GPIO_NONE) // (RW is optional)
                 _rwPort = new OutputPort(rw, false);
 
@@ -113,7 +113,7 @@ namespace MicroLiquidCrystal
         /// Write either command or data, with automatic 4/8-bit selection
         /// </summary>
         /// <param name="value">value to write</param>
-        /// <param name="mode">Mode for RS (register select) pin.</param>
+        /// <param name="mode">Mode for RS (register select) m_pin.</param>
         /// <param name="backlight">Backlight state.</param>
         public void Send(byte value, bool mode, bool backlight)
         {
@@ -124,7 +124,7 @@ namespace MicroLiquidCrystal
 
             _rsPort.Write(mode);
 
-            // if there is a RW pin indicated, set it low to Write
+            // if there is a RW m_pin indicated, set it low to Write
             if (_rwPort != null)
             {
                 _rwPort.Write(false);

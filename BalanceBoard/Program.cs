@@ -13,26 +13,30 @@ using MicroLiquidCrystal;
 
 namespace BalanceBoard
 {
-    public class Program
+    public sealed class Program
     {
         // Definizione ingressi                
-        static AnalogIn[] aPin = new AnalogIn[6];
-        static InterruptPort menuBut = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di11, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
-        static InterruptPort enterBut = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di34, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
-        static InterruptPort upBut = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di32, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
-        static InterruptPort downBut = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di30, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
+        static AnalogIn[] analogIn = new AnalogIn[6];
+        static InterruptPort[] button = new InterruptPort[4];
+        enum Button : int
+        {
+            menu,
+            enter,
+            up,
+            down
+        }
 
         // Definizione uscite
-        static OutputPort led = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.LED, false);
-        static PWM Motor1 = new PWM(PWM.Pin.PWM1);
+        static OutputPort led;
+        static Motor motor1, motor2;
 
         // Definizioni oggetti
         static Accelerometer Acc = new Accelerometer();
         static Gyroscope Gyro = new Gyroscope();
-        static IMU Imu = new IMU(Acc,Gyro);
+        static IMU Imu = new IMU(Acc, Gyro);
 
-        static PID Pid1 = new PID(1.7, 0.2 , 0.5, -90, 90, 0, 100);
-        static PID Pid2 = new PID(1, 0, 0, -90, 90, 0, 100);
+        static PID Pid1;
+        static PID Pid2;
 
         // Definizioni per LCD
         static Lcd myLcd;
@@ -45,13 +49,23 @@ namespace BalanceBoard
 
         public static void Main()
         {
-            // Inizializzazione pin AnalogIn
-            aPin[0] = new AnalogIn((AnalogIn.Pin)FEZ_Pin.AnalogIn.An0);
-            aPin[1] = new AnalogIn((AnalogIn.Pin)FEZ_Pin.AnalogIn.An1);
-            aPin[2] = new AnalogIn((AnalogIn.Pin)FEZ_Pin.AnalogIn.An2);
-            aPin[3] = new AnalogIn((AnalogIn.Pin)FEZ_Pin.AnalogIn.An3);
-            aPin[4] = new AnalogIn((AnalogIn.Pin)FEZ_Pin.AnalogIn.An4);
-            aPin[5] = new AnalogIn((AnalogIn.Pin)FEZ_Pin.AnalogIn.An5);
+            // Inizializzazione ingressi
+            analogIn[0] = new AnalogIn((AnalogIn.Pin)FEZ_Pin.AnalogIn.An0);
+            analogIn[1] = new AnalogIn((AnalogIn.Pin)FEZ_Pin.AnalogIn.An1);
+            analogIn[2] = new AnalogIn((AnalogIn.Pin)FEZ_Pin.AnalogIn.An2);
+            analogIn[3] = new AnalogIn((AnalogIn.Pin)FEZ_Pin.AnalogIn.An3);
+            analogIn[4] = new AnalogIn((AnalogIn.Pin)FEZ_Pin.AnalogIn.An4);
+            analogIn[5] = new AnalogIn((AnalogIn.Pin)FEZ_Pin.AnalogIn.An5);
+
+            button[(int)Button.menu] = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di11, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
+            button[(int)Button.enter] = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di34, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
+            button[(int)Button.up] = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di32, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
+            button[(int)Button.down] = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di30, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
+
+            // Init uscite
+            led = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.LED, false);
+            motor1 = new Motor(PWM.Pin.PWM1, 20000);
+            motor2 = new Motor(PWM.Pin.PWM2, 20000);
 
             // Inizializzazione LCD
             var lcdProvider = new GpioLcdTransferProvider((Cpu.Pin)FEZ_Pin.Digital.Di2, (Cpu.Pin)FEZ_Pin.Digital.Di3,
@@ -59,20 +73,25 @@ namespace BalanceBoard
                 (Cpu.Pin)FEZ_Pin.Digital.Di7);
             myLcd = new Lcd(lcdProvider);
             myLcd.Begin(16, 2);
-            myLcd.ShowCursor = false;
 
-            // Modifica proprieta' sensore
+            // Init sensore e PID
+            Acc = new Accelerometer();
+            Gyro = new Gyroscope();
+            Imu = new IMU(Acc,Gyro);
+            Pid1 = new PID(1, 0 , 0, -90, 90, 0, 100);
+            Pid2 = new PID(1, 0, 0, -90, 90, 0, 100);
+
             (new int[] { -1, -1, -1 }).CopyTo(Acc.Invert, 0);   // tutti gli invert a -1
             (new int[] { -1, -1 }).CopyTo(Gyro.Invert, 0);      // ....
             Acc.Offset = 1650;
             Gyro.Offset = 1325;
 
             // Eventi interrupt
-            menuBut.OnInterrupt += new NativeEventHandler(menuBut_OnInterrupt);
-            enterBut.OnInterrupt += new NativeEventHandler(enterBut_OnInterrupt);
+            button[(int)Button.menu].OnInterrupt += new NativeEventHandler(menuBut_OnInterrupt);
+            button[(int)Button.enter].OnInterrupt += new NativeEventHandler(enterBut_OnInterrupt);
 
             // Definizione timer
-            Timer control_timer = new Timer(new TimerCallback(Control), null, 0, 10);
+            Timer control_timer = new Timer(new TimerCallback(Control), null, 0, 15);
             Timer display_timer = new Timer(new TimerCallback(Display), null, 0, 500);
 
             Thread.Sleep(Timeout.Infinite);
@@ -86,7 +105,7 @@ namespace BalanceBoard
             // Algoritmo angolo
             for (int i = 0; i < 6; i++)
             {
-                adc[i] = aPin[i].Read();
+                adc[i] = analogIn[i].Read();
             }
 
             Array.Copy(adc, 0, Acc.Raw, 0, 3);
@@ -105,7 +124,9 @@ namespace BalanceBoard
             Pid1.Compute();
             Pid2.Compute();
 
-            Motor1.Set(20000, (byte)Pid1.OutputValue);
+            // Invio PID output values ai motori
+            //motor[0].Set(20000, (byte)Pid1.OutputValue);
+            motor1.set(43.5);
 
             duration = (DateTime.Now - begin);
 
@@ -114,7 +135,7 @@ namespace BalanceBoard
 
         }
 
-        private static void Display(object state)    
+        private static void Display(object state)
         {
             //Debug.Print("Angles: " + Imu.AngleXZ.ToString("f3") + "," + Imu.AngleYZ.ToString("f3"));
             //Debug.Print("Output variables: " + Pid1.OutputValue.ToString("f3") + "," + Pid2.OutputValue.ToString("f3"));
