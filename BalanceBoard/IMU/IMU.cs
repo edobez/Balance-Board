@@ -19,10 +19,10 @@ namespace BalanceBoard
         int _wGyro = D_WGYRO;
         int _signRzGyro;
 
-        float[] _RwAcc = new float[3];
-        float[] _RwGyro = new float[3];
-        float[] _RwEst = new float[3];
-        float[] _Awz = new float[2];
+        double[] _RwAcc = new double[3];
+        double[] _RwGyro = new double[3];
+        double[] _RwEst = new double[3];
+        double[] _Awz = new double[2];
 
         DateTime _currentTime, _lastTime;
         TimeSpan _deltaTime;
@@ -32,12 +32,12 @@ namespace BalanceBoard
 
         #region Properties
 
-        public float AngleXZ
+        public double AngleXZ
         {
             get { return _Awz[0]; }
         }
 
-        public float AngleYZ
+        public double AngleYZ
         {
             get { return _Awz[1]; }
         }
@@ -72,7 +72,7 @@ namespace BalanceBoard
         {
             
 
-            float temp;
+            double temp;
 
             // Gestione tempo per l'integrazione
             _currentTime = DateTime.Now;
@@ -111,10 +111,10 @@ namespace BalanceBoard
                     for(int i=0;i<2;i++)
                     {
                         temp = oGyro.Gyro[i];
-                        temp *= _deltaTime.Milliseconds / (float)1000;
+                        temp *= _deltaTime.Milliseconds / (double)1000;
 
-                        _Awz[i] = (float) MathEx.Atan2(_RwEst[i],_RwEst[2]);
-                        _Awz[i] = _Awz[i] * 180 / (float)System.Math.PI;
+                        _Awz[i] = (double) MathEx.Atan2(_RwEst[i],_RwEst[2]);
+                        _Awz[i] = _Awz[i] * 180 / (double)System.Math.PI;
                         _Awz[i] += temp;
                     }
             
@@ -124,11 +124,11 @@ namespace BalanceBoard
                     else _signRzGyro = -1;
             
                     //Calcoli inversi per determinare RwGyro dagli angoli Awz
-                    _RwGyro[0] = (float)MathEx.Sin(_Awz[0] * (float)System.Math.PI / 180);
-                    _RwGyro[0] /= (float)MathEx.Sqrt( 1 + (float)MathEx.Pow((float)MathEx.Cos(_Awz[0] * (float)System.Math.PI / 180),2) * (float)MathEx.Pow((float)MathEx.Tan(_Awz[1] * (float)System.Math.PI / 180),2) );
-                    _RwGyro[1] = (float)MathEx.Sin(_Awz[1] * (float)System.Math.PI / 180);
-                    _RwGyro[1] /= (float)MathEx.Sqrt( 1 + (float)MathEx.Pow((float)MathEx.Cos(_Awz[1] * (float)System.Math.PI / 180),2) * (float)MathEx.Pow((float)MathEx.Tan(_Awz[0] * (float)System.Math.PI / 180),2) );
-                    _RwGyro[2] = _signRzGyro * (float)MathEx.Sqrt(1 - (float)MathEx.Pow(_RwGyro[0],2) - (float)MathEx.Pow(_RwGyro[1],2) );
+                    _RwGyro[0] = (double)MathEx.Sin(_Awz[0] * (double)System.Math.PI / 180);
+                    _RwGyro[0] /= (double)MathEx.Sqrt( 1 + (double)MathEx.Pow((double)MathEx.Cos(_Awz[0] * (double)System.Math.PI / 180),2) * (double)MathEx.Pow((double)MathEx.Tan(_Awz[1] * (double)System.Math.PI / 180),2) );
+                    _RwGyro[1] = (double)MathEx.Sin(_Awz[1] * (double)System.Math.PI / 180);
+                    _RwGyro[1] /= (double)MathEx.Sqrt( 1 + (double)MathEx.Pow((double)MathEx.Cos(_Awz[1] * (double)System.Math.PI / 180),2) * (double)MathEx.Pow((double)MathEx.Tan(_Awz[0] * (double)System.Math.PI / 180),2) );
+                    _RwGyro[2] = _signRzGyro * (double)MathEx.Sqrt(1 - (double)MathEx.Pow(_RwGyro[0],2) - (double)MathEx.Pow(_RwGyro[1],2) );
             
                 }
         
@@ -145,9 +145,9 @@ namespace BalanceBoard
             _firstSample = false;
         }
 
-        public static float[] normalize3DVector(float[] vector)
+        public static double[] normalize3DVector(double[] vector)
         {
-            float R = (float)MathEx.Sqrt(vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2]);
+            double R = (double)MathEx.Sqrt(vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2]);
 
             vector[0] /= R;
             vector[1] /= R;
@@ -159,113 +159,41 @@ namespace BalanceBoard
         #endregion
     }
 
-    public class Accelerometer
+    public class Accelerometer : Sensor
     {
         #region Fields
 
-        const float D_SENS = 300;
-        const float MIN_SENS = 250;
-        const float MAX_SENS = 350;
+        const double D_SENS = 300;
+        const double MIN_SENS = 250;
+        const double MAX_SENS = 350;
 
-        const float D_OFFSET = 1500;
-        const float MIN_OFFSET = 1200;
-        const float MAX_OFFSET = 1800;
+        const double D_OFFSET = 1500;
+        const double MIN_OFFSET = 1200;
+        const double MAX_OFFSET = 1800;
 
         const int D_VREF = 3300;
         const int MIN_VREF = 1500;
         const int MAX_VREF = 5000;
 
         const int D_INVERT = 1;
-        const int ADC_RES = 1023;
-
-        float _sens;           // mV / g
-        float _offset;         // zero level (mV) @ 0g
-        int _vRef;           // ADC voltage reference
-        int[] _invert = new int[3];      // -1 if inverted, 1 otherwise
-
-        int[] _raw = new int[3];     // data from the ADC
-        float[] _acc = new float[3];       // readings in g
-        float[] _accNorm = new float[3];   // normalized 3D vector of acc[3]
+        const int ADC_RES = 1023;           // mV / g         // zero level (mV) @ 0g           // ADC voltage reference      // -1 if inverted, 1 otherwise     // data from the ADC
+        double[] acc = new double[3];       // readings in g
+        double[] accNorm = new double[3];   // normalized 3D vector of acc[3]
 
         #endregion
 
 
         #region Properties
 
-        public float Sensivity
+
+        public double[] Acc
         {
-            get { return _sens; }
-            set
-            {
-                if (value >= MIN_SENS && value <= MAX_SENS) _sens = value;
-                else _sens = D_SENS;
-            }
+            get { return acc; }
         }
 
-        public float Offset
+        public double[] AccNorm
         {
-            get { return _offset; }
-            set
-            {
-                if (value >= MIN_OFFSET && value <= MAX_OFFSET) _offset = value;
-                else _offset = D_OFFSET;
-            }
-        }
-
-
-
-        public int VRef
-        {
-            get { return _vRef; }
-            set
-            {
-                if (value > MIN_VREF && value < MAX_VREF) _vRef = value;
-                else _vRef = D_VREF;
-            }
-        }
-
-        public int[] Invert
-        {
-            get { return _invert; }
-            set
-            {
-                for (int i = 0; i < 3; i++)
-                {
-                    if (value[i] == 0 && value[i] == 1) _invert[i] = value[i];
-                    else _invert[i] = 0;
-                }
-            }
-        }
-
-        public int[] Raw
-        {
-            get { return _raw; }
-            set
-            {
-                for (int i = 0; i < 3; i++)
-                {
-                    if (value[i] >= 0 && value[i] <= ADC_RES) _raw[i] = value[i];
-                    else throw new ArgumentOutOfRangeException("value[i]", "Valore deve essere fra 0 e ADC_resolution");
-                }
-            }
-        }
-
-        public float[] RawMV
-        {
-            get
-            {
-                return new float[] { (float)Raw[0] / 1024 * 3300, (float)Raw[1] / 1024 * 3300, (float)Raw[2] / 1024 * 3300 };
-            }
-        }
-
-        public float[] Acc
-        {
-            get { return _acc; }
-        }
-
-        public float[] AccNorm
-        {
-            get { return _accNorm; }
+            get { return accNorm; }
         }
 
         #endregion
@@ -273,12 +201,14 @@ namespace BalanceBoard
 
         #region Construction / Deconstruction
 
-        public Accelerometer(float sens, float offset, int vref, int[] invert)
+        public Accelerometer(double sens, double[] offset, int vref, int[] invert)
         {
             Sensivity = sens;
-            Offset = offset;
+            offset.CopyTo(Offset, 0);
             VRef = vref;
             invert.CopyTo(Invert, 0);
+
+            dofCount = 3;
 
             // I valori di default sono assegnati nella creazione degli array.
             //for (int i = 0; i < 3; i++)
@@ -291,7 +221,7 @@ namespace BalanceBoard
 
         //Non sono sicuro che funzioni, soprattutto la parte new int....
         public Accelerometer()
-            : this(D_SENS, D_OFFSET, D_VREF, new int[3] { 1, 1, 1 })
+            : this(D_SENS, new double[3] { D_OFFSET, D_OFFSET, D_OFFSET }, D_VREF, new int[3] { 1, 1, 1 })
         { }
 
         #endregion
@@ -304,21 +234,21 @@ namespace BalanceBoard
             // Converte i dati grezzi dell'ADC in g
             for (int i = 0; i < 3; i++)
             {
-                _acc[i] = _raw[i] * _vRef / ADC_RES;
-                _acc[i] -= _offset;
-                _acc[i] /= _sens;
-                _acc[i] *= _invert[i];
+                acc[i] = raw[i] * vRef / ADC_RES;
+                acc[i] -= offset[i];
+                acc[i] /= sens;
+                acc[i] *= invert[i];
             }
 
             // Normalizza il vettore
-            _acc.CopyTo(_accNorm, 0);
-            IMU.normalize3DVector(_accNorm);
+            acc.CopyTo(accNorm, 0);
+            IMU.normalize3DVector(accNorm);
         }
 
         #endregion
     }
 
-    public class Gyroscope
+    public class Gyroscope : Sensor
     {
         #region Fields
 
@@ -337,13 +267,7 @@ namespace BalanceBoard
         const int D_INVERT = 1;
         const int ADC_RESOLUTION = 1023;
 
-        float _sens;                          // mV / deg/sec
-        float _offset;                        // zero level (mV) @ 0 deg/sec
-        int _vRef;                          // ADC voltage reference
-        int[] _invert = new int[2];         // -1 if inverted, 1 otherwise
-
-        int[] _raw = new int[2];            // data from the ADC
-        float[] _gyro = new float[2];          // readings in deg/sec
+        double[] gyro = new double[2];          // readings in deg/sec
 
 
         #endregion
@@ -351,75 +275,10 @@ namespace BalanceBoard
 
         #region Properties
 
-        public float Sensivity
+
+        public double[] Gyro
         {
-            get { return _sens; }
-            set
-            {
-                if (value >= MIN_SENS && value <= MAX_SENS) _sens = value;
-                else _sens = D_SENS;
-            }
-        }
-
-        public float Offset
-        {
-            get { return _offset; }
-            set
-            {
-                if (value >= MIN_OFFSET && value <= MAX_OFFSET) _offset = value;
-                else _offset = D_OFFSET;
-            }
-        }
-
-
-
-        public int VRef
-        {
-            get { return _vRef; }
-            set
-            {
-                if (value > MIN_VREF && value < MAX_VREF) _vRef = value;
-                else _vRef = D_VREF;
-            }
-        }
-
-        public int[] Invert
-        {
-            get { return _invert; }
-            set
-            {
-                for (int i = 0; i < 2; i++)
-                {
-                    if (value[i] == 0 && value[i] == 1) _invert[i] = value[i];
-                    else _invert[i] = 0;
-                }
-            }
-        }
-
-        public int[] Raw
-        {
-            get { return _raw; }
-            set
-            {
-                for (int i = 0; i < 2; i++)
-                {
-                    if (value[i] >= 0 && value[i] <= ADC_RESOLUTION) _raw[i] = value[i];
-                    else throw new ArgumentOutOfRangeException("value[i]", "Valore deve essere fra 0 e ADC_resolution");
-                }
-            }
-        }
-
-        public float[] RawMV
-        {
-            get
-            {
-                return new float[] { (float)Raw[0] / 1024 * 3300, (float)Raw[1] / 1024 * 3300 };
-            }
-        }
-
-        public float[] Gyro
-        {
-            get { return _gyro; }
+            get { return gyro; }
         }
 
         #endregion
@@ -427,12 +286,14 @@ namespace BalanceBoard
 
         #region Construction / Deconstruction
 
-        public Gyroscope(int sens, int offset, int vref, int[] invert)
+        public Gyroscope(int sens, double[] offset, int vref, int[] invert)
         {
             Sensivity = sens;
-            Offset = offset;
+            offset.CopyTo(Offset, 0);
             VRef = vref;
             invert.CopyTo(Invert, 0);
+
+            dofCount = 2;
 
             // Non serve inizializzare
             //for (int i = 0; i < 2; i++)
@@ -444,7 +305,7 @@ namespace BalanceBoard
 
         //Non sono sicuro che funzioni, soprattutto la parte new int....
         public Gyroscope()
-            : this(D_SENS, D_OFFSET, D_VREF, new int[2] { 1, 1 })
+            : this(D_SENS, new double[2] { D_OFFSET, D_OFFSET }, D_VREF, new int[2] { 1, 1 })
         { }
 
         #endregion
@@ -457,10 +318,10 @@ namespace BalanceBoard
             // Converte i dati grezzi dell'ADC in g
             for (int i = 0; i < 2; i++)
             {
-                _gyro[i] = _raw[i] * _vRef / ADC_RESOLUTION;
-                _gyro[i] -= _offset;
-                _gyro[i] /= _sens;
-                _gyro[i] *= _invert[i];
+                gyro[i] = raw[i] * vRef / ADC_RESOLUTION;
+                gyro[i] -= offset[i];
+                gyro[i] /= sens;
+                gyro[i] *= invert[i];
             }
         }
 
@@ -474,32 +335,32 @@ namespace BalanceBoard
         /// <summary>
         /// Permette l'inversione degli assi del sensore.
         /// </summary>
-        private int[] invert;
+        protected int[] invert;
 
         /// <summary>
         /// Offset del sensore a riposo/vuoto.
         /// </summary>
-        private double[] offset;
+        protected double[] offset;
 
         /// <summary>
         /// Valori letti dall'ADC e immagazzinati nell'oggetto.
         /// </summary>
-        private int[] raw;
+        protected int[] raw;
 
         /// <summary>
         /// Sensibilita' del sensore per unita' presa in considerazione.
         /// </summary>
-        private double sens;
+        protected double sens;
 
         /// <summary>
         /// Tensione di riferimento dell'ADC.
         /// </summary>
-        private int vRef;
+        protected int vRef;
 
         /// <summary>
         /// Numero dei gradi di liberta' del sensore.
         /// </summary>
-        private int dofCount;
+        protected int dofCount;
 
         #endregion
 

@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Menu", "Menu\Menu.csproj", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MotorTest", "MotorTest\MotorTest.csproj", "{E934C85F-11B4-4FFE-8BF5-54D4927B5E15}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StringParser", "StringParser\StringParser.csproj", "{1AD94E32-054A-49E9-8706-FA1C53FA9B5C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug Emulatore|Any CPU = Debug Emulatore|Any CPU
@@ -71,6 +73,15 @@ Global
 		{E934C85F-11B4-4FFE-8BF5-54D4927B5E15}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E934C85F-11B4-4FFE-8BF5-54D4927B5E15}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E934C85F-11B4-4FFE-8BF5-54D4927B5E15}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{1AD94E32-054A-49E9-8706-FA1C53FA9B5C}.Debug Emulatore|Any CPU.ActiveCfg = Debug|Any CPU
+		{1AD94E32-054A-49E9-8706-FA1C53FA9B5C}.Debug Emulatore|Any CPU.Build.0 = Debug|Any CPU
+		{1AD94E32-054A-49E9-8706-FA1C53FA9B5C}.Debug Emulatore|Any CPU.Deploy.0 = Debug|Any CPU
+		{1AD94E32-054A-49E9-8706-FA1C53FA9B5C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1AD94E32-054A-49E9-8706-FA1C53FA9B5C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1AD94E32-054A-49E9-8706-FA1C53FA9B5C}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{1AD94E32-054A-49E9-8706-FA1C53FA9B5C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1AD94E32-054A-49E9-8706-FA1C53FA9B5C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1AD94E32-054A-49E9-8706-FA1C53FA9B5C}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
