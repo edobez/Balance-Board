@@ -8,7 +8,7 @@ namespace StringParser
     public class Parser
     {
         Hashtable commands = null;
-        public delegate void ParserHandler(object[] args);
+        public delegate void ParserHandler(object[] args, int argNum);
     
         public Parser()
         {
@@ -22,15 +22,20 @@ namespace StringParser
 
         public void parse(byte[] b)
         {
-            string[] rx_dataString = (new string(Encoding.UTF8.GetChars(b))).Split(',');
 
-            if (commands.Contains(rx_dataString[0]))
+            string[] rx_dataString = (new string(Encoding.UTF8.GetChars(b))).TrimEnd('\r','\n').Split(',');
+            string command = rx_dataString[0];
+
+            string[] par = new string[rx_dataString.Length - 1];
+            Array.Copy(rx_dataString, 1, par, 0, par.Length);
+
+            if (commands.Contains(command))
             {
-                ParserHandler handler = commands[rx_dataString[0]] as ParserHandler;
+                ParserHandler handler = commands[command] as ParserHandler;
 
                 if (handler != null)
                 {
-                    handler(rx_dataString);
+                    handler(par, par.Length);
                 }
             }
 
