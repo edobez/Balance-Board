@@ -89,8 +89,8 @@ namespace BalanceBoard
 
             (new int[] { -1, -1, -1 }).CopyTo(Acc.Invert, 0);   // tutti gli invert a -1
             (new int[] { -1, -1 }).CopyTo(Gyro.Invert, 0);      // ....
-            Acc.Offset = new double[]{1650,1650,1650};      // forse sono da mettere come sopra...
-            Gyro.Offset = new double[]{1325,1325};
+            Acc.Offset = new double[] { 1656.44, 1579.10, 1650 };      // forse sono da mettere come sopra...
+            Gyro.Offset = new double[] { 1327.73, 1330.95 };
 
             // Init porta seriale e parser
             UART = new SerialPort("COM2", 57600);
@@ -98,17 +98,17 @@ namespace BalanceBoard
             UART.Open();
             UART.DataReceived += new SerialDataReceivedEventHandler(UART_DataReceived);
 
-            Parser = new StringParser();
-            Parser.addCommand("ping",Parser_onPing);
-            Parser.addCommand("Setpoint", Parser_onChangeSetPoint);
-            Parser.addCommand("mt", Parser_onMotorTest);
+            //Parser = new StringParser();
+            //Parser.addCommand("ping",Parser_onPing);
+            //Parser.addCommand("Setpoint", Parser_onChangeSetPoint);
+            //Parser.addCommand("mt", Parser_onMotorTest);
 
             // Eventi interrupt
             button[(int)Button.menu].OnInterrupt += new NativeEventHandler(menuBut_OnInterrupt);
             button[(int)Button.enter].OnInterrupt += new NativeEventHandler(enterBut_OnInterrupt);
 
             // Definizione timer
-            Timer control_timer = new Timer(new TimerCallback(Control), null, 0, 200);
+            Timer control_timer = new Timer(new TimerCallback(Control), null, 0, 100);
             Timer display_timer = new Timer(new TimerCallback(Display), null, 0, 500);
 
             Thread.Sleep(Timeout.Infinite);
@@ -141,7 +141,7 @@ namespace BalanceBoard
             Pid2.Compute();
 
             // Invio PID output values ai motori
-            //Motor1.set(Pid1.OutputValue);
+            Motor1.set(Pid1.OutputValue);
             //Motor2.set(Pid2.OutputValue);
 
             duration = (DateTime.Now - begin);
