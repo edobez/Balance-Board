@@ -120,6 +120,7 @@ namespace PIDLibrary
             pvMin = pMin;
             outMax = oMax;
             outMin = oMin;
+            sp = 0;
             //readPV = pvFunc;
             //readSP = spFunc;
             //writeOV = outFunc;
@@ -139,22 +140,18 @@ namespace PIDLibrary
 
         public void Compute()
         {
-            //if (readPV == null || readSP == null || writeOV == null)
-            //    return;
-
-            //float pv = readPV();
-            //float sp = readSP();
 
             //We need to scale the pv to +/- 100%, but first clamp it
             pv = Clamp(pv, pvMin, pvMax);
             pv = ScaleValue(pv, pvMin, pvMax, -1.0f, 1.0f);
 
             //We also need to scale the setpoint
-            sp = Clamp(sp, pvMin, pvMax);
-            sp = ScaleValue(sp, pvMin, pvMax, -1.0f, 1.0f);
+            float spTemp;
+            spTemp = Clamp(sp, pvMin, pvMax);
+            spTemp = ScaleValue(spTemp, pvMin, pvMax, -1.0f, 1.0f);
 
             //Now the error is in percent...
-            float err = sp - pv;
+            float err = spTemp - pv;
 
             float pTerm = err * kp;
             float iTerm = 0.0f;

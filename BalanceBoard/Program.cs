@@ -32,8 +32,6 @@ namespace BalanceBoard
         // Definizione uscite
         static OutputPort led;
         static Motor Motor1, Motor2;
-        static PWM MotorTestPin;
-        static OutputPort EnableA;
 
         // Definizioni oggetti
         static Accelerometer Acc;
@@ -72,10 +70,8 @@ namespace BalanceBoard
 
             // Init uscite
             led = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.LED, false);
-            Motor1 = new Motor(PWM.Pin.PWM1, 20000);
-            //Motor2 = new Motor(PWM.Pin.PWM2, 20000);
-            //MotorTestPin = new PWM(PWM.Pin.PWM1);
-            EnableA = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.Di11, true);
+            Motor1 = new Motor(PWM.Pin.PWM2, (Cpu.Pin)FEZ_Pin.Digital.Di8, 20000);
+            Motor2 = new Motor(PWM.Pin.PWM1, (Cpu.Pin)FEZ_Pin.Digital.Di11, 20000);
 
             // Inizializzazione LCD
             //var lcdProvider = new GpioLcdTransferProvider((Cpu.Pin)FEZ_Pin.Digital.Di2, (Cpu.Pin)FEZ_Pin.Digital.Di3,
@@ -89,23 +85,26 @@ namespace BalanceBoard
             Gyro = new Gyroscope();
             Imu = new IMU(Acc,Gyro);
             Pid1 = new PID(1, 0 , 0, -90, 90, 0, 100);
-            Pid2 = new PID(1, 0, 0, -90, 90, 0, 100);
+            Pid2 = new PID(3, 0.3F, 0.1F, -90, 90, 0, 100);
 
-            (new int[] { -1, -1, -1 }).CopyTo(Acc.Invert, 0);   // tutti gli invert a -1
-            (new int[] { -1, -1 }).CopyTo(Gyro.Invert, 0);      // ....
+            Acc.Invert = new int[] { -1, -1, -1 };
+            Gyro.Invert = new int[] { -1, -1 };
             Acc.Offset = new float[] { 1656, 1579, 1650 };      // forse sono da mettere come sopra...
             Gyro.Offset = new float[] { 1328, 1331 };
 
             // Init porta seriale e parser
             UART = new SerialPort("COM2", 57600);
-            UART.ReadTimeout = 2000;
+            UART.ReadTimeout = 200;
             UART.Open();
-            //UART.DataReceived += new SerialDataReceivedEventHandler(UART_DataReceived);
+            UART.DataReceived += new SerialDataReceivedEventHandler(UART_DataReceived);
 
             Parser = new StringParser();
             Parser.addCommand("ping", Parser_onPing);
-            Parser.addCommand("Setpoint", Parser_onChangeSetPoint);
+            Parser.addCommand("setpoint", Parser_onSetPoint);
+            Parser.addCommand("pid", Parser_onPid);
             Parser.addCommand("mt", Parser_onMotorTest);
+            Parser.addCommand("stop", Parser_onDisableMotors);
+            Parser.addCommand("start", Parser_onEnableMotors);
 
             // Eventi interrupt
             //button[(int)Button.menu].OnInterrupt += new NativeEventHandler(menuBut_OnInterrupt);
@@ -120,6 +119,8 @@ namespace BalanceBoard
 
         static void Control(object state)
         {
+            led.Write(!led.Read());
+
             begin = DateTime.Now;
 
             // Algoritmo angolo
@@ -136,19 +137,15 @@ namespace BalanceBoard
             Imu.compute();
 
             // Algoritmo PID
-            Pid1.SetPoint = 0;
             Pid1.ProcessVariable = Imu.AngleXZ;
-            Pid2.SetPoint = 0;
             Pid2.ProcessVariable = Imu.AngleYZ;
 
             Pid1.Compute();
             Pid2.Compute();
 
             // Invio PID output values ai motori
-            EnableA.Write(false);
-            Motor1.set(Pid2.OutputValue);
-            //Motor2.set(Pid2.OutputValue);
-            //MotorTestPin.Set(20000, 90);
+            //Motor1.set(Pid1.OutputValue);
+            Motor2.set(Pid2.OutputValue);
 
             duration = (DateTime.Now - begin);
 
@@ -199,31 +196,31 @@ namespace BalanceBoard
             Thread.Sleep(0);
         }
 
-        //static void UART_DataReceived(object sender, SerialDataReceivedEventArgs e)
-        //{
-        //    //Debug.Print("Serial data recieved!");
+        static void UART_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            //Debug.Print("Serial data recieved!");
 
-        //    Thread.Sleep(5);    // Serve?
+            Thread.Sleep(5);    // Serve?
 
-        //    byte[] rxData = new byte[32];
-        //    UART.Read(rxData, 0, rxData.Length);
+            byte[] rxData = new byte[32];
+            UART.Read(rxData, 0, rxData.Length);
 
-        //    //Debug.Print("Received: " + new String(Encoding.UTF8.GetChars(rxData)));
+            //Debug.Print("Received: " + new String(Encoding.UTF8.GetChars(rxData)));
 
-        //    if (rxData.Length != 0)
-        //    {
-        //        if (Parser.parse(rxData) == false)
-        //        {
-        //            string message = "Comando sconosciuto";
-        //            Debug.Print(message);
-        //            UART_PrintString(message);
-        //        }
-        //    }
-        //}
+            if (rxData.Length != 0)
+            {
+                if (Parser.parse(rxData) == false)
+                {
+                    string message = "Comando sconosciuto";
+                    Debug.Print(message);
+                    UART_PrintString(message);
+                }
+            }
+        }
 
         static void UART_PrintString(string s)
         {
-            byte[] buffer = Encoding.UTF8.GetBytes(s);
+            byte[] buffer = Encoding.UTF8.GetBytes(s + "\n");
             UART.Write(buffer, 0, buffer.Length);
         }
 
@@ -233,7 +230,57 @@ namespace BalanceBoard
             UART_PrintString("Pong!");
         }
 
-        static void Parser_onChangeSetPoint(string[] args, int argNum)
+        static void Parser_onPid(string[] args, int argNum)
+        {
+            if (argNum == 4)
+            {
+                int ch = int.Parse(args[0]);
+                if (ch == 1)
+                {
+                    Pid1.PGain = (float)Double.Parse(args[1]);
+                    Pid1.IGain = (float)Double.Parse(args[2]);
+                    Pid1.DGain = (float)Double.Parse(args[3]);
+                    string message = "Nuovi parametri del canale " + ch + ": " + Pid1.PGain + "," + Pid1.IGain + "," + Pid1.DGain;
+                    Debug.Print(message);
+                    UART_PrintString(message);
+                }
+                else if (ch == 2)
+                {
+                    Pid2.PGain = (float)Double.Parse(args[1]);
+                    Pid2.IGain = (float)Double.Parse(args[2]);
+                    Pid2.DGain = (float)Double.Parse(args[3]);
+                    string message = "Nuovi parametri del canale " + ch + ": " + Pid2.PGain + "," + Pid2.IGain + "," + Pid2.DGain;
+                    Debug.Print(message);
+                    UART_PrintString(message);
+                }
+                else
+                {
+                    string message = "Argomento 1 puo' essere 1 o 2";
+                    Debug.Print(message);
+                    UART_PrintString(message);
+                }
+            }
+            else
+            {
+                string message = "Numero degli argomenti deve essere uguale a 4";
+                Debug.Print(message);
+                UART_PrintString(message);
+            }
+        }
+
+        static void Parser_onDisableMotors(string[] args, int argNum)
+        {
+            Motor1.disable();
+            Motor2.disable();
+        }
+
+        static void Parser_onEnableMotors(string[] args, int argNum)
+        {
+            Motor1.enable();
+            Motor2.enable();
+        }
+
+        static void Parser_onSetPoint(string[] args, int argNum)
         {
             if (argNum == 2)
             {
@@ -267,12 +314,6 @@ namespace BalanceBoard
             }
         }
 
-        /// <summary>
-        /// Funzione chiamata quando viene ricevuto il comando seriale "MT"
-        /// Sintassi: MT,numero motore,tipo test
-        /// </summary>
-        /// <param name="args"></param>
-        /// <param name="argNum"></param>
         static void Parser_onMotorTest(string[] args, int argNum)
         {
             Motor motor;
@@ -341,13 +382,5 @@ namespace BalanceBoard
         //    test.Priority = ThreadPriority.BelowNormal;
         //    test.Start();
         //}
-
-        static void blink()
-        {
-            led.Write(true);
-            Thread.Sleep(1000);
-            led.Write(false);
-            Thread.Sleep(0);
-        }
     }
 }

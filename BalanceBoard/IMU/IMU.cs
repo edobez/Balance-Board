@@ -379,7 +379,7 @@ namespace BalanceBoard
             {
                 for (int i = 0; i < dofCount; i++)
                 {
-                    if (value[i] == 0 && value[i] == 1) invert[i] = value[i];
+                    if (value[i] == -1 || value[i] == 1) invert[i] = value[i];
                     else throw new ArgumentOutOfRangeException("value[i]", "Invert deve essere 1 o -1");
                 }
             }

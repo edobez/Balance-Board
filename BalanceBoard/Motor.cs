@@ -1,5 +1,6 @@
 using System;
 using Microsoft.SPOT;
+using Microsoft.SPOT.Hardware;
 using GHIElectronics.NETMF.Hardware;
 
 namespace BalanceBoard
@@ -16,17 +17,21 @@ namespace BalanceBoard
         /// </summary>
         private int m_frequency;
 
-        public Motor(PWM.Pin pin, int frequency)
+        private OutputPort enablePort;
+
+        public Motor(PWM.Pin pin,Cpu.Pin enablePin, int frequency)
         {
             m_pin = new PWM(pin);
             m_frequency = frequency;
+            enablePort = new OutputPort(enablePin, true);
         }
 
-        //~Motor()
-        //{
-        //    m_pin.Dispose();
-        //    Debug.Print("PWM pin disposed");
-        //}
+        ~Motor()
+        {
+            m_pin.Dispose();
+            enablePort.Dispose();
+            Debug.Print("PWM pin disposed");
+        }
 
         /// <summary>
         /// Assegna il duty cycle del dispositivo di potenza.
@@ -54,6 +59,15 @@ namespace BalanceBoard
             }
         }
 
+        public void enable()
+        {
+            enablePort.Write(false);
+        }
+
+        public void disable()
+        {
+            enablePort.Write(true);
+        }
 
 
         
