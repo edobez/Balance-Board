@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Threading;
+using System.IO.Ports;
+using System.Text;
 
 using Microsoft.SPOT;
 using Microsoft.SPOT.Hardware;
@@ -10,6 +12,7 @@ using GHIElectronics.NETMF.USBClient;
 
 using PIDLibrary;
 using MicroLiquidCrystal;
+using edobezLib;
 
 namespace BalanceBoard
 {
@@ -28,15 +31,18 @@ namespace BalanceBoard
 
         // Definizione uscite
         static OutputPort led;
-        static Motor motor1, motor2;
+        static Motor Motor1, Motor2;
 
         // Definizioni oggetti
-        static Accelerometer Acc = new Accelerometer();
-        static Gyroscope Gyro = new Gyroscope();
-        static IMU Imu = new IMU(Acc, Gyro);
+        static Accelerometer Acc;
+        static Gyroscope Gyro;
+        static IMU Imu;
 
         static PID Pid1;
         static PID Pid2;
+
+        static SerialPort UART;
+        static StringParser Parser;
 
         // Definizioni per LCD
         static Lcd myLcd;
@@ -64,8 +70,8 @@ namespace BalanceBoard
 
             // Init uscite
             led = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.LED, false);
-            motor1 = new Motor(PWM.Pin.PWM1, 20000);
-            motor2 = new Motor(PWM.Pin.PWM2, 20000);
+            Motor1 = new Motor(PWM.Pin.PWM1, 20000);
+            Motor2 = new Motor(PWM.Pin.PWM2, 20000);
 
             // Inizializzazione LCD
             var lcdProvider = new GpioLcdTransferProvider((Cpu.Pin)FEZ_Pin.Digital.Di2, (Cpu.Pin)FEZ_Pin.Digital.Di3,
@@ -83,22 +89,32 @@ namespace BalanceBoard
 
             (new int[] { -1, -1, -1 }).CopyTo(Acc.Invert, 0);   // tutti gli invert a -1
             (new int[] { -1, -1 }).CopyTo(Gyro.Invert, 0);      // ....
-            Acc.Offset = 1650;
-            Gyro.Offset = 1325;
+            Acc.Offset = new double[]{1650,1650,1650};      // forse sono da mettere come sopra...
+            Gyro.Offset = new double[]{1325,1325};
+
+            // Init porta seriale e parser
+            UART = new SerialPort("COM2", 57600);
+            UART.ReadTimeout = 2000;
+            UART.Open();
+            UART.DataReceived += new SerialDataReceivedEventHandler(UART_DataReceived);
+
+            Parser = new StringParser();
+            Parser.addCommand("ping",Parser_onPing);
+            Parser.addCommand("Setpoint", Parser_onChangeSetPoint);
+            Parser.addCommand("mt", Parser_onMotorTest);
 
             // Eventi interrupt
             button[(int)Button.menu].OnInterrupt += new NativeEventHandler(menuBut_OnInterrupt);
             button[(int)Button.enter].OnInterrupt += new NativeEventHandler(enterBut_OnInterrupt);
 
             // Definizione timer
-            Timer control_timer = new Timer(new TimerCallback(Control), null, 0, 15);
+            Timer control_timer = new Timer(new TimerCallback(Control), null, 0, 200);
             Timer display_timer = new Timer(new TimerCallback(Display), null, 0, 500);
 
             Thread.Sleep(Timeout.Infinite);
         }
 
-
-        private static void Control(object state)
+        static void Control(object state)
         {
             begin = DateTime.Now;
 
@@ -118,15 +134,15 @@ namespace BalanceBoard
             // Algoritmo PID
             Pid1.SetPoint = 0;
             Pid1.ProcessVariable = Imu.AngleXZ;
-            Pid2.SetPoint = -1;
+            Pid2.SetPoint = 0;
             Pid2.ProcessVariable = Imu.AngleYZ;
 
             Pid1.Compute();
             Pid2.Compute();
 
             // Invio PID output values ai motori
-            //motor[0].Set(20000, (byte)Pid1.OutputValue);
-            motor1.set(43.5);
+            //Motor1.set(Pid1.OutputValue);
+            //Motor2.set(Pid2.OutputValue);
 
             duration = (DateTime.Now - begin);
 
@@ -135,46 +151,172 @@ namespace BalanceBoard
 
         }
 
-        private static void Display(object state)
+        static void Display(object state)
         {
-            //Debug.Print("Angles: " + Imu.AngleXZ.ToString("f3") + "," + Imu.AngleYZ.ToString("f3"));
-            //Debug.Print("Output variables: " + Pid1.OutputValue.ToString("f3") + "," + Pid2.OutputValue.ToString("f3"));
+            Debug.Print("Angles: " + Imu.AngleXZ.ToString("f0") + "," + Imu.AngleYZ.ToString("f0"));
+            Debug.Print("Output variables: " + Pid1.OutputValue.ToString("f1") + "," + Pid2.OutputValue.ToString("f1"));
             Debug.Print("Control run time: " + duration.Milliseconds);
 
-            switch (currentMenu)
-            {
-                case 0:
-                    myLcd.SetCursorPosition(0, 0);
-                    myLcd.Write2("Angoli");
-                    myLcd.SetCursorPosition(0, 1);
-                    myLcd.Write2(Imu.AngleXZ.ToString("f0") + "," + Imu.AngleYZ.ToString("f0"));
-                    break;
-                case 1:
-                    myLcd.SetCursorPosition(0, 0);
-                    myLcd.Write2("PID values");
-                    myLcd.SetCursorPosition(0, 1);
-                    myLcd.Write2(Pid1.OutputValue.ToString("f0") + "," + Pid2.OutputValue.ToString("f0"));
-                    break;
-                case 2:
-                    myLcd.SetCursorPosition(0, 0);
-                    myLcd.Write2("ADC readings 1");
-                    myLcd.SetCursorPosition(0, 1);
-                    myLcd.Write2(Acc.RawMV[0].ToString("f0") + "," + Acc.RawMV[1].ToString("f0") + "," + Acc.RawMV[2].ToString("f0"));
-                    break;
-                case 3:
-                    myLcd.SetCursorPosition(0, 0);
-                    myLcd.Write2("ADC readings 2");
-                    myLcd.SetCursorPosition(0, 1);
-                    myLcd.Write2(Gyro.RawMV[0].ToString("f0") + "," + Gyro.RawMV[1].ToString("f0"));
-                    break;
-                default:
-                    myLcd.SetCursorPosition(0, 0);
-                    myLcd.Write2("Errore");
-                    break;
-            }
+            //switch (currentMenu)
+            //{
+            //    case 0:
+            //        myLcd.SetCursorPosition(0, 0);
+            //        myLcd.Write2("Angoli");
+            //        myLcd.SetCursorPosition(0, 1);
+            //        myLcd.Write2(Imu.AngleXZ.ToString("f0") + "," + Imu.AngleYZ.ToString("f0"));
+            //        break;
+            //    case 1:
+            //        myLcd.SetCursorPosition(0, 0);
+            //        myLcd.Write2("PID values");
+            //        myLcd.SetCursorPosition(0, 1);
+            //        myLcd.Write2(Pid1.OutputValue.ToString("f0") + "," + Pid2.OutputValue.ToString("f0"));
+            //        break;
+            //    case 2:
+            //        myLcd.SetCursorPosition(0, 0);
+            //        myLcd.Write2("ADC readings 1");
+            //        myLcd.SetCursorPosition(0, 1);
+            //        myLcd.Write2(Acc.RawMV[0].ToString("f0") + "," + Acc.RawMV[1].ToString("f0") + "," + Acc.RawMV[2].ToString("f0"));
+            //        break;
+            //    case 3:
+            //        myLcd.SetCursorPosition(0, 0);
+            //        myLcd.Write2("ADC readings 2");
+            //        myLcd.SetCursorPosition(0, 1);
+            //        myLcd.Write2(Gyro.RawMV[0].ToString("f0") + "," + Gyro.RawMV[1].ToString("f0"));
+            //        break;
+            //    default:
+            //        myLcd.SetCursorPosition(0, 0);
+            //        myLcd.Write2("Errore");
+            //        break;
+            //}
 
             // In teoria velocizza lo scheduling...
             Thread.Sleep(0);
+        }
+
+        static void UART_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            //Debug.Print("Serial data recieved!");
+
+            Thread.Sleep(5);    // Serve?
+
+            byte[] rxData = new byte[32];
+            UART.Read(rxData, 0, rxData.Length);
+
+            //Debug.Print("Received: " + new String(Encoding.UTF8.GetChars(rxData)));
+
+            if (rxData.Length != 0)
+            {
+                if (Parser.parse(rxData) == false)
+                {
+                    string message = "Comando sconosciuto";
+                    Debug.Print(message);
+                    UART_PrintString(message);
+                }
+            }
+        }
+
+        static void UART_PrintString(string s)
+        {
+            byte[] buffer = Encoding.UTF8.GetBytes(s);
+            UART.Write(buffer, 0, buffer.Length);
+        }
+
+        static void Parser_onPing(string[] args, int argNum)
+        {
+            Debug.Print("Pong!");
+            UART_PrintString("Pong!");
+        }
+
+        static void Parser_onChangeSetPoint(string[] args, int argNum)
+        {
+            if (argNum == 2)
+            {
+                int ch = int.Parse(args[0]);
+                if (ch == 1)
+                {
+                    Pid1.SetPoint = double.Parse(args[1]);
+                    string message = "Nuovo setpoint del canale " + ch + ": " + Pid1.SetPoint;
+                    Debug.Print(message);
+                    UART_PrintString(message);
+                }
+                else if (ch == 2)
+                {
+                    Pid2.SetPoint = double.Parse(args[1]);
+                    string message = "Nuovo setpoint del canale " + ch + ": " + Pid2.SetPoint;
+                    Debug.Print(message);
+                    UART_PrintString(message);
+                }
+                else
+                {
+                    string message = "Argomento 1 puo' essere 1 o 2";
+                    Debug.Print(message);
+                    UART_PrintString(message);
+                }
+            }
+            else
+            {
+                string message = "Numero degli argomenti deve essere uguale a 2";
+                Debug.Print(message);
+                UART_PrintString(message);
+            }
+        }
+
+        /// <summary>
+        /// Funzione chiamata quando viene ricevuto il comando seriale "MT"
+        /// Sintassi: MT,numero motore,tipo test
+        /// </summary>
+        /// <param name="args"></param>
+        /// <param name="argNum"></param>
+        static void Parser_onMotorTest(string[] args, int argNum)
+        {
+            Motor motor;
+            if (argNum == 3)
+            {
+                int motorNum = int.Parse(args[0]);
+                int testNum = int.Parse(args[1]);
+
+                if (motorNum == 1)
+                {
+                    motor = Motor1;
+                }
+                else if (motorNum == 2)
+                {
+                    motor = Motor2;
+                }
+                else
+                {
+                    string message = "Errore parametro motore";
+                    Debug.Print(message);
+                    UART_PrintString(message);
+                    return;
+                }
+
+                switch (testNum)
+                {
+                    case 1: // Motore avanti al 50% per 1 sec.
+                        motor.set(75);
+                        Thread.Sleep(1000);
+                        motor.set(50);
+                        break;
+                    case 2: // Motore indietro al 50% per 1 sec.
+                        motor.set(25);
+                        Thread.Sleep(1000);
+                        motor.set(50);
+                        break;
+                    default:
+                        string message = "Numero test errato";
+                        Debug.Print(message);
+                        UART_PrintString(message);
+                        break;
+                }
+
+            }
+            else
+            {
+                string message = "Numero degli argomenti deve essere uguale a 3";
+                Debug.Print(message);
+                UART_PrintString(message);
+            }
         }
 
         static void menuBut_OnInterrupt(uint data1, uint data2, DateTime time)

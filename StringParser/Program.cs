@@ -5,16 +5,16 @@ using System.Text;
 
 using Microsoft.SPOT;
 
-namespace StringParser
+namespace edobezLib
 {
     public class Program
     {
         static SerialPort UART;
-        static Parser p;
+        static StringParser p;
         public static void Main()
         {
             UART = new SerialPort("COM2", 57600);
-            p = new Parser();
+            p = new StringParser();
 
             UART.ReadTimeout = 500;
             UART.Open();

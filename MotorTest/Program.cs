@@ -20,16 +20,19 @@ namespace TestPWM
             bool ledState = false;
 
             OutputPort led = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.LED, ledState);
+            OutputPort enableA = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.Di11,true);
 
             Motor motor1 = new Motor(PWM.Pin.PWM1, 20000);
 
             double i = 0.5;
 
+            enableA.Write(false);
             while (true)
             {
-                motor1.set(i++);
-                if (i > 100) i = 0.75;
-                Thread.Sleep(700);
+                motor1.set(100);
+                Thread.Sleep(200);
+                motor1.set(0);
+                Thread.Sleep(200);
             }
         }
 

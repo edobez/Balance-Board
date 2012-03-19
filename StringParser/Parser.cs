@@ -3,27 +3,27 @@ using System.Text;
 using System.Collections;
 using Microsoft.SPOT;
 
-namespace StringParser
+namespace edobezLib
 {
-    public class Parser
+    public class StringParser
     {
         Hashtable commands = null;
-        public delegate void ParserHandler(object[] args, int argNum);
+        public delegate void ParserHandler(string[] args, int argNum);
     
-        public Parser()
+        public StringParser()
         {
             commands = new Hashtable();
         }
 
         public void addCommand(string com, ParserHandler handler)
         {
-            commands.Add(com, handler);
+            commands.Add(com.ToLower(), handler);
         }
 
-        public void parse(byte[] b)
+        public bool parse(byte[] b)
         {
-
-            string[] rx_dataString = (new string(Encoding.UTF8.GetChars(b))).TrimEnd('\r','\n').Split(',');
+            // Array di char -> Stringa codificata in UTF8 -> Tutto lowercase -> Tolte terminazioni -> Diviso in un array
+            string[] rx_dataString = (new string(Encoding.UTF8.GetChars(b))).ToLower().TrimEnd('\r','\n').Split(','); 
             string command = rx_dataString[0];
 
             string[] par = new string[rx_dataString.Length - 1];
@@ -37,9 +37,14 @@ namespace StringParser
                 {
                     handler(par, par.Length);
                 }
+                return true;
             }
 
-            else Debug.Print("Unknown command!");
+            else
+            {
+                //Debug.Print("Unknown command!");
+                return false;
+            }
         }
     }
 }

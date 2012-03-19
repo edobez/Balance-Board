@@ -73,8 +73,9 @@
     <Reference Include="GHIElectronics.NETMF.Hardware.USBizi, Version=4.1.7.0, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="GHIElectronics.NETMF.System, Version=4.1.7.0, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="GHIElectronics.NETMF.USBClient, Version=4.1.7.0, Culture=neutral, processorArchitecture=MSIL" />
-    <Reference Include="Microsoft.SPOT.Graphics" />
     <Reference Include="Microsoft.SPOT.Hardware" />
+    <Reference Include="Microsoft.SPOT.Hardware.SerialPort" />
+    <Reference Include="Microsoft.SPOT.IO" />
     <Reference Include="Microsoft.SPOT.Native">
     </Reference>
   </ItemGroup>
@@ -87,5 +88,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="IMU\IMU.cd" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\StringParser\StringParser.csproj">
+      <Project>{1AD94E32-054A-49E9-8706-FA1C53FA9B5C}</Project>
+      <Name>StringParser</Name>
+    </ProjectReference>
   </ItemGroup>
 </Project>

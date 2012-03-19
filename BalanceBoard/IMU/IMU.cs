@@ -203,12 +203,15 @@ namespace BalanceBoard
 
         public Accelerometer(double sens, double[] offset, int vref, int[] invert)
         {
+            dofCount = 3;
+            this.offset = new double[dofCount];
+            this.invert = new int[dofCount];
+            this.raw = new int[dofCount];
+
             Sensivity = sens;
             offset.CopyTo(Offset, 0);
             VRef = vref;
-            invert.CopyTo(Invert, 0);
-
-            dofCount = 3;
+            invert.CopyTo(Invert, 0);            
 
             // I valori di default sono assegnati nella creazione degli array.
             //for (int i = 0; i < 3; i++)
@@ -221,7 +224,7 @@ namespace BalanceBoard
 
         //Non sono sicuro che funzioni, soprattutto la parte new int....
         public Accelerometer()
-            : this(D_SENS, new double[3] { D_OFFSET, D_OFFSET, D_OFFSET }, D_VREF, new int[3] { 1, 1, 1 })
+            : this(D_SENS, new double[3] {2,2,2 }, D_VREF, new int[3] { 1, 1, 1 })
         { }
 
         #endregion
@@ -229,7 +232,7 @@ namespace BalanceBoard
 
         #region Public Methods
 
-        public void compute()
+        public override void compute()
         {
             // Converte i dati grezzi dell'ADC in g
             for (int i = 0; i < 3; i++)
@@ -288,12 +291,15 @@ namespace BalanceBoard
 
         public Gyroscope(int sens, double[] offset, int vref, int[] invert)
         {
+            dofCount = 2;
+            this.offset = new double[dofCount];
+            this.invert = new int[dofCount];
+            this.raw = new int[dofCount];
+
             Sensivity = sens;
             offset.CopyTo(Offset, 0);
             VRef = vref;
             invert.CopyTo(Invert, 0);
-
-            dofCount = 2;
 
             // Non serve inizializzare
             //for (int i = 0; i < 2; i++)
@@ -313,7 +319,7 @@ namespace BalanceBoard
 
         #region Public Methods
 
-        public void compute()
+        public override void compute()
         {
             // Converte i dati grezzi dell'ADC in g
             for (int i = 0; i < 2; i++)
@@ -331,6 +337,11 @@ namespace BalanceBoard
     public abstract class Sensor
     {
         #region Fields
+
+        /// <summary>
+        /// Numero dei gradi di liberta' del sensore.
+        /// </summary>
+        protected int dofCount;
 
         /// <summary>
         /// Permette l'inversione degli assi del sensore.
@@ -357,11 +368,6 @@ namespace BalanceBoard
         /// </summary>
         protected int vRef;
 
-        /// <summary>
-        /// Numero dei gradi di liberta' del sensore.
-        /// </summary>
-        protected int dofCount;
-
         #endregion
 
         #region Properties
@@ -387,7 +393,7 @@ namespace BalanceBoard
                 for (int i = 0; i < dofCount; i++)
                 {
                     if (value[i] > 0) offset[i] = value[i];
-                    else throw new ArgumentOutOfRangeException("value[i]", "Invert deve essere maggiore di 0");
+                    else throw new ArgumentOutOfRangeException("value[i]", "Offset deve essere maggiore di 0");
                 }
             }
         }
