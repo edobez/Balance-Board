@@ -19,10 +19,10 @@ namespace BalanceBoard
         int _wGyro = D_WGYRO;
         int _signRzGyro;
 
-        double[] _RwAcc = new double[3];
-        double[] _RwGyro = new double[3];
-        double[] _RwEst = new double[3];
-        double[] _Awz = new double[2];
+        float[] _RwAcc = new float[3];
+        float[] _RwGyro = new float[3];
+        float[] _RwEst = new float[3];
+        float[] _Awz = new float[2];
 
         DateTime _currentTime, _lastTime;
         TimeSpan _deltaTime;
@@ -32,12 +32,12 @@ namespace BalanceBoard
 
         #region Properties
 
-        public double AngleXZ
+        public float AngleXZ
         {
             get { return _Awz[0]; }
         }
 
-        public double AngleYZ
+        public float AngleYZ
         {
             get { return _Awz[1]; }
         }
@@ -72,7 +72,7 @@ namespace BalanceBoard
         {
             
 
-            double temp;
+            float temp;
 
             // Gestione tempo per l'integrazione
             _currentTime = DateTime.Now;
@@ -111,10 +111,10 @@ namespace BalanceBoard
                     for(int i=0;i<2;i++)
                     {
                         temp = oGyro.Gyro[i];
-                        temp *= _deltaTime.Milliseconds / (double)1000;
+                        temp *= _deltaTime.Milliseconds / (float)1000;
 
-                        _Awz[i] = (double) MathEx.Atan2(_RwEst[i],_RwEst[2]);
-                        _Awz[i] = _Awz[i] * 180 / (double)System.Math.PI;
+                        _Awz[i] = (float) MathEx.Atan2(_RwEst[i],_RwEst[2]);
+                        _Awz[i] = _Awz[i] * 180 / (float)System.Math.PI;
                         _Awz[i] += temp;
                     }
             
@@ -124,11 +124,11 @@ namespace BalanceBoard
                     else _signRzGyro = -1;
             
                     //Calcoli inversi per determinare RwGyro dagli angoli Awz
-                    _RwGyro[0] = (double)MathEx.Sin(_Awz[0] * (double)System.Math.PI / 180);
-                    _RwGyro[0] /= (double)MathEx.Sqrt( 1 + (double)MathEx.Pow((double)MathEx.Cos(_Awz[0] * (double)System.Math.PI / 180),2) * (double)MathEx.Pow((double)MathEx.Tan(_Awz[1] * (double)System.Math.PI / 180),2) );
-                    _RwGyro[1] = (double)MathEx.Sin(_Awz[1] * (double)System.Math.PI / 180);
-                    _RwGyro[1] /= (double)MathEx.Sqrt( 1 + (double)MathEx.Pow((double)MathEx.Cos(_Awz[1] * (double)System.Math.PI / 180),2) * (double)MathEx.Pow((double)MathEx.Tan(_Awz[0] * (double)System.Math.PI / 180),2) );
-                    _RwGyro[2] = _signRzGyro * (double)MathEx.Sqrt(1 - (double)MathEx.Pow(_RwGyro[0],2) - (double)MathEx.Pow(_RwGyro[1],2) );
+                    _RwGyro[0] = (float)MathEx.Sin(_Awz[0] * (float)System.Math.PI / 180);
+                    _RwGyro[0] /= (float)MathEx.Sqrt( 1 + (float)MathEx.Pow((float)MathEx.Cos(_Awz[0] * (float)System.Math.PI / 180),2) * (float)MathEx.Pow((float)MathEx.Tan(_Awz[1] * (float)System.Math.PI / 180),2) );
+                    _RwGyro[1] = (float)MathEx.Sin(_Awz[1] * (float)System.Math.PI / 180);
+                    _RwGyro[1] /= (float)MathEx.Sqrt( 1 + (float)MathEx.Pow((float)MathEx.Cos(_Awz[1] * (float)System.Math.PI / 180),2) * (float)MathEx.Pow((float)MathEx.Tan(_Awz[0] * (float)System.Math.PI / 180),2) );
+                    _RwGyro[2] = _signRzGyro * (float)MathEx.Sqrt(1 - (float)MathEx.Pow(_RwGyro[0],2) - (float)MathEx.Pow(_RwGyro[1],2) );
             
                 }
         
@@ -145,9 +145,9 @@ namespace BalanceBoard
             _firstSample = false;
         }
 
-        public static double[] normalize3DVector(double[] vector)
+        public static float[] normalize3DVector(float[] vector)
         {
-            double R = (double)MathEx.Sqrt(vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2]);
+            float R = (float)MathEx.Sqrt(vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2]);
 
             vector[0] /= R;
             vector[1] /= R;
@@ -163,13 +163,13 @@ namespace BalanceBoard
     {
         #region Fields
 
-        const double D_SENS = 300;
-        const double MIN_SENS = 250;
-        const double MAX_SENS = 350;
+        const float D_SENS = 300;
+        const float MIN_SENS = 250;
+        const float MAX_SENS = 350;
 
-        const double D_OFFSET = 1500;
-        const double MIN_OFFSET = 1200;
-        const double MAX_OFFSET = 1800;
+        const float D_OFFSET = 1500;
+        const float MIN_OFFSET = 1200;
+        const float MAX_OFFSET = 1800;
 
         const int D_VREF = 3300;
         const int MIN_VREF = 1500;
@@ -177,8 +177,8 @@ namespace BalanceBoard
 
         const int D_INVERT = 1;
         const int ADC_RES = 1023;           // mV / g         // zero level (mV) @ 0g           // ADC voltage reference      // -1 if inverted, 1 otherwise     // data from the ADC
-        double[] acc = new double[3];       // readings in g
-        double[] accNorm = new double[3];   // normalized 3D vector of acc[3]
+        float[] acc = new float[3];       // readings in g
+        float[] accNorm = new float[3];   // normalized 3D vector of acc[3]
 
         #endregion
 
@@ -186,12 +186,12 @@ namespace BalanceBoard
         #region Properties
 
 
-        public double[] Acc
+        public float[] Acc
         {
             get { return acc; }
         }
 
-        public double[] AccNorm
+        public float[] AccNorm
         {
             get { return accNorm; }
         }
@@ -201,10 +201,10 @@ namespace BalanceBoard
 
         #region Construction / Deconstruction
 
-        public Accelerometer(double sens, double[] offset, int vref, int[] invert)
+        public Accelerometer(float sens, float[] offset, int vref, int[] invert)
         {
             dofCount = 3;
-            this.offset = new double[dofCount];
+            this.offset = new float[dofCount];
             this.invert = new int[dofCount];
             this.raw = new int[dofCount];
 
@@ -224,7 +224,7 @@ namespace BalanceBoard
 
         //Non sono sicuro che funzioni, soprattutto la parte new int....
         public Accelerometer()
-            : this(D_SENS, new double[3] {2,2,2 }, D_VREF, new int[3] { 1, 1, 1 })
+            : this(D_SENS, new float[3] {2,2,2 }, D_VREF, new int[3] { 1, 1, 1 })
         { }
 
         #endregion
@@ -270,7 +270,7 @@ namespace BalanceBoard
         const int D_INVERT = 1;
         const int ADC_RESOLUTION = 1023;
 
-        double[] gyro = new double[2];          // readings in deg/sec
+        float[] gyro = new float[2];          // readings in deg/sec
 
 
         #endregion
@@ -279,7 +279,7 @@ namespace BalanceBoard
         #region Properties
 
 
-        public double[] Gyro
+        public float[] Gyro
         {
             get { return gyro; }
         }
@@ -289,10 +289,10 @@ namespace BalanceBoard
 
         #region Construction / Deconstruction
 
-        public Gyroscope(int sens, double[] offset, int vref, int[] invert)
+        public Gyroscope(int sens, float[] offset, int vref, int[] invert)
         {
             dofCount = 2;
-            this.offset = new double[dofCount];
+            this.offset = new float[dofCount];
             this.invert = new int[dofCount];
             this.raw = new int[dofCount];
 
@@ -311,7 +311,7 @@ namespace BalanceBoard
 
         //Non sono sicuro che funzioni, soprattutto la parte new int....
         public Gyroscope()
-            : this(D_SENS, new double[2] { D_OFFSET, D_OFFSET }, D_VREF, new int[2] { 1, 1 })
+            : this(D_SENS, new float[2] { D_OFFSET, D_OFFSET }, D_VREF, new int[2] { 1, 1 })
         { }
 
         #endregion
@@ -351,7 +351,7 @@ namespace BalanceBoard
         /// <summary>
         /// Offset del sensore a riposo/vuoto.
         /// </summary>
-        protected double[] offset;
+        protected float[] offset;
 
         /// <summary>
         /// Valori letti dall'ADC e immagazzinati nell'oggetto.
@@ -361,7 +361,7 @@ namespace BalanceBoard
         /// <summary>
         /// Sensibilita' del sensore per unita' presa in considerazione.
         /// </summary>
-        protected double sens;
+        protected float sens;
 
         /// <summary>
         /// Tensione di riferimento dell'ADC.
@@ -385,7 +385,7 @@ namespace BalanceBoard
             }
         }
 
-        public double[] Offset
+        public float[] Offset
         {
             get { return offset; }
             set
@@ -412,7 +412,7 @@ namespace BalanceBoard
             }
         }
 
-        public double Sensivity
+        public float Sensivity
         {
             get { return sens; }
             set
@@ -425,11 +425,11 @@ namespace BalanceBoard
         /// <summary>
         /// Lettura dati grezzi convertiti in millivolt.
         /// </summary>
-        public double[] RawMV
+        public float[] RawMV
         {
             get
             {
-                double[] temp = new double[dofCount];
+                float[] temp = new float[dofCount];
                 for (int i = 0; i < dofCount; i++)
                 {
                     temp[i] = raw[i];

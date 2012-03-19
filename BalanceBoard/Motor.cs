@@ -22,11 +22,11 @@ namespace BalanceBoard
             m_frequency = frequency;
         }
 
-        ~Motor()
-        {
-            m_pin.Dispose();
-            Debug.Print("PWM pin disposed");
-        }
+        //~Motor()
+        //{
+        //    m_pin.Dispose();
+        //    Debug.Print("PWM pin disposed");
+        //}
 
         /// <summary>
         /// Assegna il duty cycle del dispositivo di potenza.
@@ -42,7 +42,7 @@ namespace BalanceBoard
         /// Assegna il duty cycle.
         /// </summary>
         /// <param name="dutyCycle">Duty cycle in double</param>
-        public void set(double dutyCycle)
+        public void set(float dutyCycle)
         {
             if (dutyCycle > 100 || dutyCycle < 0) throw new ArgumentOutOfRangeException();
             else

@@ -32,6 +32,8 @@ namespace BalanceBoard
         // Definizione uscite
         static OutputPort led;
         static Motor Motor1, Motor2;
+        static PWM MotorTestPin;
+        static OutputPort EnableA;
 
         // Definizioni oggetti
         static Accelerometer Acc;
@@ -45,8 +47,8 @@ namespace BalanceBoard
         static StringParser Parser;
 
         // Definizioni per LCD
-        static Lcd myLcd;
-        static byte currentMenu;
+        //static Lcd myLcd;
+        //static byte currentMenu;
 
         // Definizioni var. globali
         static TimeSpan duration;
@@ -63,22 +65,24 @@ namespace BalanceBoard
             analogIn[4] = new AnalogIn((AnalogIn.Pin)FEZ_Pin.AnalogIn.An4);
             analogIn[5] = new AnalogIn((AnalogIn.Pin)FEZ_Pin.AnalogIn.An5);
 
-            button[(int)Button.menu] = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di11, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
-            button[(int)Button.enter] = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di34, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
-            button[(int)Button.up] = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di32, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
-            button[(int)Button.down] = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di30, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
+            //button[(int)Button.menu] = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di11, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
+            //button[(int)Button.enter] = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di34, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
+            //button[(int)Button.up] = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di32, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
+            //button[(int)Button.down] = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di30, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
 
             // Init uscite
             led = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.LED, false);
             Motor1 = new Motor(PWM.Pin.PWM1, 20000);
-            Motor2 = new Motor(PWM.Pin.PWM2, 20000);
+            //Motor2 = new Motor(PWM.Pin.PWM2, 20000);
+            //MotorTestPin = new PWM(PWM.Pin.PWM1);
+            EnableA = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.Di11, true);
 
             // Inizializzazione LCD
-            var lcdProvider = new GpioLcdTransferProvider((Cpu.Pin)FEZ_Pin.Digital.Di2, (Cpu.Pin)FEZ_Pin.Digital.Di3,
-                (Cpu.Pin)FEZ_Pin.Digital.Di4, (Cpu.Pin)FEZ_Pin.Digital.Di5, (Cpu.Pin)FEZ_Pin.Digital.Di6,
-                (Cpu.Pin)FEZ_Pin.Digital.Di7);
-            myLcd = new Lcd(lcdProvider);
-            myLcd.Begin(16, 2);
+            //var lcdProvider = new GpioLcdTransferProvider((Cpu.Pin)FEZ_Pin.Digital.Di2, (Cpu.Pin)FEZ_Pin.Digital.Di3,
+            //    (Cpu.Pin)FEZ_Pin.Digital.Di4, (Cpu.Pin)FEZ_Pin.Digital.Di5, (Cpu.Pin)FEZ_Pin.Digital.Di6,
+            //    (Cpu.Pin)FEZ_Pin.Digital.Di7);
+            //myLcd = new Lcd(lcdProvider);
+            //myLcd.Begin(16, 2);
 
             // Init sensore e PID
             Acc = new Accelerometer();
@@ -89,26 +93,26 @@ namespace BalanceBoard
 
             (new int[] { -1, -1, -1 }).CopyTo(Acc.Invert, 0);   // tutti gli invert a -1
             (new int[] { -1, -1 }).CopyTo(Gyro.Invert, 0);      // ....
-            Acc.Offset = new double[] { 1656.44, 1579.10, 1650 };      // forse sono da mettere come sopra...
-            Gyro.Offset = new double[] { 1327.73, 1330.95 };
+            Acc.Offset = new float[] { 1656, 1579, 1650 };      // forse sono da mettere come sopra...
+            Gyro.Offset = new float[] { 1328, 1331 };
 
             // Init porta seriale e parser
             UART = new SerialPort("COM2", 57600);
             UART.ReadTimeout = 2000;
             UART.Open();
-            UART.DataReceived += new SerialDataReceivedEventHandler(UART_DataReceived);
+            //UART.DataReceived += new SerialDataReceivedEventHandler(UART_DataReceived);
 
-            //Parser = new StringParser();
-            //Parser.addCommand("ping",Parser_onPing);
-            //Parser.addCommand("Setpoint", Parser_onChangeSetPoint);
-            //Parser.addCommand("mt", Parser_onMotorTest);
+            Parser = new StringParser();
+            Parser.addCommand("ping", Parser_onPing);
+            Parser.addCommand("Setpoint", Parser_onChangeSetPoint);
+            Parser.addCommand("mt", Parser_onMotorTest);
 
             // Eventi interrupt
-            button[(int)Button.menu].OnInterrupt += new NativeEventHandler(menuBut_OnInterrupt);
-            button[(int)Button.enter].OnInterrupt += new NativeEventHandler(enterBut_OnInterrupt);
+            //button[(int)Button.menu].OnInterrupt += new NativeEventHandler(menuBut_OnInterrupt);
+            //button[(int)Button.enter].OnInterrupt += new NativeEventHandler(enterBut_OnInterrupt);
 
             // Definizione timer
-            Timer control_timer = new Timer(new TimerCallback(Control), null, 0, 100);
+            Timer control_timer = new Timer(new TimerCallback(Control), null, 0, 20);
             Timer display_timer = new Timer(new TimerCallback(Display), null, 0, 500);
 
             Thread.Sleep(Timeout.Infinite);
@@ -141,8 +145,10 @@ namespace BalanceBoard
             Pid2.Compute();
 
             // Invio PID output values ai motori
-            Motor1.set(Pid1.OutputValue);
+            EnableA.Write(false);
+            Motor1.set(Pid2.OutputValue);
             //Motor2.set(Pid2.OutputValue);
+            //MotorTestPin.Set(20000, 90);
 
             duration = (DateTime.Now - begin);
 
@@ -193,27 +199,27 @@ namespace BalanceBoard
             Thread.Sleep(0);
         }
 
-        static void UART_DataReceived(object sender, SerialDataReceivedEventArgs e)
-        {
-            //Debug.Print("Serial data recieved!");
+        //static void UART_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        //{
+        //    //Debug.Print("Serial data recieved!");
 
-            Thread.Sleep(5);    // Serve?
+        //    Thread.Sleep(5);    // Serve?
 
-            byte[] rxData = new byte[32];
-            UART.Read(rxData, 0, rxData.Length);
+        //    byte[] rxData = new byte[32];
+        //    UART.Read(rxData, 0, rxData.Length);
 
-            //Debug.Print("Received: " + new String(Encoding.UTF8.GetChars(rxData)));
+        //    //Debug.Print("Received: " + new String(Encoding.UTF8.GetChars(rxData)));
 
-            if (rxData.Length != 0)
-            {
-                if (Parser.parse(rxData) == false)
-                {
-                    string message = "Comando sconosciuto";
-                    Debug.Print(message);
-                    UART_PrintString(message);
-                }
-            }
-        }
+        //    if (rxData.Length != 0)
+        //    {
+        //        if (Parser.parse(rxData) == false)
+        //        {
+        //            string message = "Comando sconosciuto";
+        //            Debug.Print(message);
+        //            UART_PrintString(message);
+        //        }
+        //    }
+        //}
 
         static void UART_PrintString(string s)
         {
@@ -234,14 +240,14 @@ namespace BalanceBoard
                 int ch = int.Parse(args[0]);
                 if (ch == 1)
                 {
-                    Pid1.SetPoint = double.Parse(args[1]);
+                    Pid1.SetPoint = (float) Double.Parse(args[1]);
                     string message = "Nuovo setpoint del canale " + ch + ": " + Pid1.SetPoint;
                     Debug.Print(message);
                     UART_PrintString(message);
                 }
                 else if (ch == 2)
                 {
-                    Pid2.SetPoint = double.Parse(args[1]);
+                    Pid2.SetPoint = (float) Double.Parse(args[1]);
                     string message = "Nuovo setpoint del canale " + ch + ": " + Pid2.SetPoint;
                     Debug.Print(message);
                     UART_PrintString(message);
@@ -319,22 +325,22 @@ namespace BalanceBoard
             }
         }
 
-        static void menuBut_OnInterrupt(uint data1, uint data2, DateTime time)
-        {
-            //Debug.Print("menuBut pressed!");
-            //menuBut.DisableInterrupt();
-            currentMenu++;
-            if (currentMenu > 3) currentMenu = 0;
-            //menuBut.EnableInterrupt();
-        }
+        //static void menuBut_OnInterrupt(uint data1, uint data2, DateTime time)
+        //{
+        //    //Debug.Print("menuBut pressed!");
+        //    //menuBut.DisableInterrupt();
+        //    currentMenu++;
+        //    if (currentMenu > 3) currentMenu = 0;
+        //    //menuBut.EnableInterrupt();
+        //}
 
-        static void enterBut_OnInterrupt(uint data1, uint data2, DateTime time)
-        {
-            //Debug.Print("enterBut pressed!");
-            Thread test = new Thread(blink);
-            test.Priority = ThreadPriority.BelowNormal;
-            test.Start();
-        }
+        //static void enterBut_OnInterrupt(uint data1, uint data2, DateTime time)
+        //{
+        //    //Debug.Print("enterBut pressed!");
+        //    Thread test = new Thread(blink);
+        //    test.Priority = ThreadPriority.BelowNormal;
+        //    test.Start();
+        //}
 
         static void blink()
         {

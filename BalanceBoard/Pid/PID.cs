@@ -9,93 +9,93 @@ namespace PIDLibrary
         #region Fields
 
         //Gains
-        private double kp;
-        private double ki;
-        private double kd;
+        private float kp;
+        private float ki;
+        private float kd;
 
         //Running Values
         private DateTime lastUpdate;
-        private double lastPV;
-        private double errSum;
+        private float lastPV;
+        private float errSum;
 
         //Reading/Writing Values
-        //private GetDouble readPV;
-        //private GetDouble readSP;
-        //private SetDouble writeOV;
+        //private Getfloat readPV;
+        //private Getfloat readSP;
+        //private Setfloat writeOV;
 
         //Storing PV,SP,OV
-        private double pv;
-        private double sp;
-        private double ov;
+        private float pv;
+        private float sp;
+        private float ov;
 
         //Max/Min Calculation
-        private double pvMax;
-        private double pvMin;
-        private double outMax;
-        private double outMin;
+        private float pvMax;
+        private float pvMin;
+        private float outMax;
+        private float outMin;
 
         //Threading and Timing
-        //private double computeHz = 1.0f;
+        //private float computeHz = 1.0f;
         //private Thread runThread;
 
         #endregion
 
         #region Properties
 
-        public double ProcessVariable
+        public float ProcessVariable
         {
             get { return pv; }
             set { pv = value; }
         }
 
-        public double SetPoint
+        public float SetPoint
         {
             get { return sp; }
             set { sp = value; }
         }
 
-        public double OutputValue
+        public float OutputValue
         {
             get { return ov; }
         }
 
-        public double PGain
+        public float PGain
         {
             get { return kp; }
             set { kp = value; }
         }
 
-        public double IGain
+        public float IGain
         {
             get { return ki; }
             set { ki = value; }
         }
 
-        public double DGain
+        public float DGain
         {
             get { return kd; }
             set { kd = value; }
         }
 
-        public double PVMin
+        public float PVMin
         {
             get { return pvMin; }
             set { pvMin = value; }
         }
 
-        public double PVMax
+        public float PVMax
         {
             get { return pvMax; }
             set { pvMax = value; }
         }
 
-        public double OutMin
+        public float OutMin
         {
             get { return outMin; }
             set { outMin = value; }
         }
 
-        public double OutMax
+        public float OutMax
         {
             get { return outMax; }
             set { outMax = value; }
@@ -110,8 +110,8 @@ namespace PIDLibrary
 
         #region Construction / Deconstruction
 
-        public PID(double pG, double iG, double dG,
-            double pMin, double pMax, double oMin, double oMax)
+        public PID(float pG, float iG, float dG,
+            float pMin, float pMax, float oMin, float oMax)
         {
             kp = pG;
             ki = iG;
@@ -142,8 +142,8 @@ namespace PIDLibrary
             //if (readPV == null || readSP == null || writeOV == null)
             //    return;
 
-            //double pv = readPV();
-            //double sp = readSP();
+            //float pv = readPV();
+            //float sp = readSP();
 
             //We need to scale the pv to +/- 100%, but first clamp it
             pv = Clamp(pv, pvMin, pvMax);
@@ -154,19 +154,19 @@ namespace PIDLibrary
             sp = ScaleValue(sp, pvMin, pvMax, -1.0f, 1.0f);
 
             //Now the error is in percent...
-            double err = sp - pv;
+            float err = sp - pv;
 
-            double pTerm = err * kp;
-            double iTerm = 0.0f;
-            double dTerm = 0.0f;
+            float pTerm = err * kp;
+            float iTerm = 0.0f;
+            float dTerm = 0.0f;
 
-            double partialSum = 0.0f;
+            float partialSum = 0.0f;
             DateTime nowTime = DateTime.Now;
 
             // Non sono sicuro che MinValue possa essere uguale a NULL
             if (lastUpdate != DateTime.MinValue)
             {
-                double dT = (double)(nowTime - lastUpdate).Milliseconds / (double)1000;
+                float dT = (float)(nowTime - lastUpdate).Milliseconds / (float)1000;
 
                 //Compute the integral if we have to...
                 if (pv >= pvMin && pv <= pvMax)
@@ -184,7 +184,7 @@ namespace PIDLibrary
             lastPV = pv;
 
             //Now we have to scale the output value to match the requested scale
-            double outReal = pTerm + iTerm + dTerm;
+            float outReal = pTerm + iTerm + dTerm;
 
             outReal = Clamp(outReal, -1.0f, 1.0f);
             outReal = ScaleValue(outReal, -1.0f, 1.0f, outMin, outMax);
@@ -224,17 +224,17 @@ namespace PIDLibrary
 
         #region Private Methods
 
-        private double ScaleValue(double value, double valuemin, double valuemax, double scalemin, double scalemax)
+        private float ScaleValue(float value, float valuemin, float valuemax, float scalemin, float scalemax)
         {
-            double vPerc = (value - valuemin) / (valuemax - valuemin);
-            double bigSpan = vPerc * (scalemax - scalemin);
+            float vPerc = (value - valuemin) / (valuemax - valuemin);
+            float bigSpan = vPerc * (scalemax - scalemin);
 
-            double retVal = scalemin + bigSpan;
+            float retVal = scalemin + bigSpan;
 
             return retVal;
         }
 
-        private double Clamp(double value, double min, double max)
+        private float Clamp(float value, float min, float max)
         {
             if (value > max)
                 return max;
