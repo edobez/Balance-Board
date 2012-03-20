@@ -33,38 +33,42 @@ namespace BalanceBoard
             Debug.Print("PWM pin disposed");
         }
 
-        /// <summary>
-        /// Assegna il duty cycle del dispositivo di potenza.
-        /// </summary>
-        /// <param name="dutyCycle">Duty cycle in byte</param>
-        public void set(byte dutyCycle)
-        {
-            if (dutyCycle > 100) throw new ArgumentOutOfRangeException();
-            else m_pin.Set(m_frequency, dutyCycle);
-        }
+        ///// <summary>
+        ///// Assegna il duty cycle del dispositivo di potenza.
+        ///// </summary>
+        ///// <param name="dutyCycle">Duty cycle in byte</param>
+        //public void set(byte dutyCycle)
+        //{
+        //    if (dutyCycle > 100) throw new ArgumentOutOfRangeException();
+        //    else m_pin.Set(m_frequency, dutyCycle);
+        //}
 
         /// <summary>
         /// Assegna il duty cycle.
         /// </summary>
         /// <param name="dutyCycle">Duty cycle in double</param>
-        public void set(float dutyCycle)
+        public void Set(float dutyCycle)
         {
-            if (dutyCycle > 100 || dutyCycle < 0) throw new ArgumentOutOfRangeException();
+            float temp;
+            if (dutyCycle >= 50) temp = dutyCycle + 15;
+            else temp = dutyCycle - 15;
+
+            if (temp > 100 || temp < 0) throw new ArgumentOutOfRangeException();
             else
             {
                 uint period = (uint) (1e9 / m_frequency);
-                uint highTime = (uint) (period / 100 * dutyCycle);
+                uint highTime = (uint)(period / 100 * temp);
 
                 m_pin.SetPulse(period, highTime);
             }
         }
 
-        public void enable()
+        public void Enable()
         {
             enablePort.Write(false);
         }
 
-        public void disable()
+        public void Disable()
         {
             enablePort.Write(true);
         }

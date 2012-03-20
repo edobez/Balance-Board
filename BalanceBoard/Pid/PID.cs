@@ -8,6 +8,8 @@ namespace PIDLibrary
 
         #region Fields
 
+        private bool mode;
+
         //Gains
         private float kp;
         private float ki;
@@ -15,37 +17,34 @@ namespace PIDLibrary
 
         //Running Values
         private DateTime lastUpdate;
-        private float lastPV;
+        private float lastInput;
         private float errSum;
 
-        //Reading/Writing Values
-        //private Getfloat readPV;
-        //private Getfloat readSP;
-        //private Setfloat writeOV;
-
         //Storing PV,SP,OV
-        private float pv;
+        private float input;
         private float sp;
-        private float ov;
+        private float output;
 
         //Max/Min Calculation
-        private float pvMax;
-        private float pvMin;
-        private float outMax;
-        private float outMin;
-
-        //Threading and Timing
-        //private float computeHz = 1.0f;
-        //private Thread runThread;
+        private float inputMax;
+        private float inputMin;
+        private float outputMax;
+        private float outputMin;
 
         #endregion
 
         #region Properties
 
+        public bool Mode
+        {
+            get;
+            set;
+        }
+
         public float ProcessVariable
         {
-            get { return pv; }
-            set { pv = value; }
+            get { return input; }
+            set { input = value; }
         }
 
         public float SetPoint
@@ -56,7 +55,7 @@ namespace PIDLibrary
 
         public float OutputValue
         {
-            get { return ov; }
+            get { return output; }
         }
 
         public float PGain
@@ -79,32 +78,27 @@ namespace PIDLibrary
 
         public float PVMin
         {
-            get { return pvMin; }
-            set { pvMin = value; }
+            get { return inputMin; }
+            set { inputMin = value; }
         }
 
         public float PVMax
         {
-            get { return pvMax; }
-            set { pvMax = value; }
+            get { return inputMax; }
+            set { inputMax = value; }
         }
 
         public float OutMin
         {
-            get { return outMin; }
-            set { outMin = value; }
+            get { return outputMin; }
+            set { outputMin = value; }
         }
 
         public float OutMax
         {
-            get { return outMax; }
-            set { outMax = value; }
+            get { return outputMax; }
+            set { outputMax = value; }
         }
-
-        //public bool PIDOK
-        //{
-        //    get { return runThread != null; }
-        //}
 
         #endregion
 
@@ -116,14 +110,12 @@ namespace PIDLibrary
             kp = pG;
             ki = iG;
             kd = dG;
-            pvMax = pMax;
-            pvMin = pMin;
-            outMax = oMax;
-            outMin = oMin;
+            inputMax = pMax;
+            inputMin = pMin;
+            outputMax = oMax;
+            outputMin = oMin;
             sp = 0;
-            //readPV = pvFunc;
-            //readSP = spFunc;
-            //writeOV = outFunc;
+            output = 50;
         }
 
         //~PID()
@@ -140,18 +132,19 @@ namespace PIDLibrary
 
         public void Compute()
         {
+            if (!Mode) return;
 
             //We need to scale the pv to +/- 100%, but first clamp it
-            pv = Clamp(pv, pvMin, pvMax);
-            pv = ScaleValue(pv, pvMin, pvMax, -1.0f, 1.0f);
+            input = Clamp(input, inputMin, inputMax);
+            input = ScaleValue(input, inputMin, inputMax, -1.0f, 1.0f);
 
             //We also need to scale the setpoint
             float spTemp;
-            spTemp = Clamp(sp, pvMin, pvMax);
-            spTemp = ScaleValue(spTemp, pvMin, pvMax, -1.0f, 1.0f);
+            spTemp = Clamp(sp, inputMin, inputMax);
+            spTemp = ScaleValue(spTemp, inputMin, inputMax, -1.0f, 1.0f);
 
             //Now the error is in percent...
-            float err = spTemp - pv;
+            float err = spTemp - input;
 
             float pTerm = err * kp;
             float iTerm = 0.0f;
@@ -166,50 +159,42 @@ namespace PIDLibrary
                 float dT = (float)(nowTime - lastUpdate).Milliseconds / (float)1000;
 
                 //Compute the integral if we have to...
-                if (pv >= pvMin && pv <= pvMax)
+                if (input >= inputMin && input <= inputMax)
                 {
                     partialSum = errSum + dT * err;
                     iTerm = ki * partialSum;
+                    //La parte sotto e' sperimentale
+                    //if (iTerm > 1.0f) iTerm = 1.0f;
+                    //else if (iTerm < -1.0f) iTerm = -1.0f;
                 }
 
                 if (dT != 0.0f)
-                    dTerm = kd * (pv - lastPV) / dT;
+                    dTerm = kd * (input - lastInput) / dT;
             }
 
             lastUpdate = nowTime;
             errSum = partialSum;
-            lastPV = pv;
+            lastInput = input;
 
             //Now we have to scale the output value to match the requested scale
-            float outReal = pTerm + iTerm + dTerm;
+            float outReal = pTerm + iTerm + dTerm; //messo il meno all'ultimo termine ma non ne sono sicuro
 
             outReal = Clamp(outReal, -1.0f, 1.0f);
-            outReal = ScaleValue(outReal, -1.0f, 1.0f, outMin, outMax);
+            outReal = ScaleValue(outReal, -1.0f, 1.0f, outputMin, outputMax);
 
-            //Write it out to the world
-            //writeOV(outReal);
-            ov = outReal;
+            output = outReal;
         }
 
-        //public void Enable()
-        //{
-        //    if (runThread != null)
-        //        return;
+        public void Enable()
+        {
+            Mode = true;
+            Reset();
+        }
 
-        //    Reset();
-
-        //    runThread = new Thread(new ThreadStart(Run));
-        //    runThread.Start();
-        //}
-
-        //public void Disable()
-        //{
-        //    if (runThread == null)
-        //        return;
-
-        //    runThread.Abort();
-        //    runThread = null;
-        //}
+        public void Disable()
+        {
+            Mode = false;
+        }
 
         public void Reset()
         {

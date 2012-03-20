@@ -10,7 +10,7 @@ namespace BalanceBoard
     {
         #region Fields
 
-        const int D_WGYRO = 5;
+        const int D_WGYRO = 3;
 
         Accelerometer oAcc;
         Gyroscope oGyro;

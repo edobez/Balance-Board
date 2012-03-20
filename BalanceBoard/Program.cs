@@ -85,7 +85,7 @@ namespace BalanceBoard
             Gyro = new Gyroscope();
             Imu = new IMU(Acc,Gyro);
             Pid1 = new PID(1, 0 , 0, -90, 90, 0, 100);
-            Pid2 = new PID(3, 0.3F, 0.1F, -90, 90, 0, 100);
+            Pid2 = new PID(1, 0, 0, -90, 90, 15, 85);
 
             Acc.Invert = new int[] { -1, -1, -1 };
             Gyro.Invert = new int[] { -1, -1 };
@@ -103,15 +103,15 @@ namespace BalanceBoard
             Parser.addCommand("setpoint", Parser_onSetPoint);
             Parser.addCommand("pid", Parser_onPid);
             Parser.addCommand("mt", Parser_onMotorTest);
-            Parser.addCommand("stop", Parser_onDisableMotors);
-            Parser.addCommand("start", Parser_onEnableMotors);
+            Parser.addCommand("pidstop", Parser_onPidStop);
+            Parser.addCommand("pidstart", Parser_onPidStart);
 
             // Eventi interrupt
             //button[(int)Button.menu].OnInterrupt += new NativeEventHandler(menuBut_OnInterrupt);
             //button[(int)Button.enter].OnInterrupt += new NativeEventHandler(enterBut_OnInterrupt);
 
             // Definizione timer
-            Timer control_timer = new Timer(new TimerCallback(Control), null, 0, 20);
+            Timer control_timer = new Timer(new TimerCallback(Control), null, 0, 10);
             Timer display_timer = new Timer(new TimerCallback(Display), null, 0, 500);
 
             Thread.Sleep(Timeout.Infinite);
@@ -145,7 +145,7 @@ namespace BalanceBoard
 
             // Invio PID output values ai motori
             //Motor1.set(Pid1.OutputValue);
-            Motor2.set(Pid2.OutputValue);
+            Motor2.Set(Pid2.OutputValue);
 
             duration = (DateTime.Now - begin);
 
@@ -240,7 +240,7 @@ namespace BalanceBoard
                     Pid1.PGain = (float)Double.Parse(args[1]);
                     Pid1.IGain = (float)Double.Parse(args[2]);
                     Pid1.DGain = (float)Double.Parse(args[3]);
-                    string message = "Nuovi parametri del canale " + ch + ": " + Pid1.PGain + "," + Pid1.IGain + "," + Pid1.DGain;
+                    string message = "Nuovi parametri del canale " + ch + ": " + Pid1.PGain.ToString("f2") + "," + Pid1.IGain.ToString("f2") + "," + Pid1.DGain.ToString("f2");
                     Debug.Print(message);
                     UART_PrintString(message);
                 }
@@ -268,16 +268,28 @@ namespace BalanceBoard
             }
         }
 
-        static void Parser_onDisableMotors(string[] args, int argNum)
+        static void Parser_onPidStart(string[] args, int argNum)
         {
-            Motor1.disable();
-            Motor2.disable();
+            Motor1.Enable();
+            Motor2.Enable();
+            Pid1.Enable();
+            Pid2.Enable();
+
+            string message = "Pid Started!";
+            //Debug.Print(message);
+            UART_PrintString(message);
         }
 
-        static void Parser_onEnableMotors(string[] args, int argNum)
+        static void Parser_onPidStop(string[] args, int argNum)
         {
-            Motor1.enable();
-            Motor2.enable();
+            Motor1.Disable();
+            Motor2.Disable();
+            Pid1.Disable();
+            Pid2.Disable();
+
+            string message = "Pid Stopped!";
+            //Debug.Print(message);
+            UART_PrintString(message);
         }
 
         static void Parser_onSetPoint(string[] args, int argNum)
@@ -341,14 +353,14 @@ namespace BalanceBoard
                 switch (testNum)
                 {
                     case 1: // Motore avanti al 50% per 1 sec.
-                        motor.set(75);
+                        motor.Set(75);
                         Thread.Sleep(1000);
-                        motor.set(50);
+                        motor.Set(50);
                         break;
                     case 2: // Motore indietro al 50% per 1 sec.
-                        motor.set(25);
+                        motor.Set(25);
                         Thread.Sleep(1000);
-                        motor.set(50);
+                        motor.Set(50);
                         break;
                     default:
                         string message = "Numero test errato";
