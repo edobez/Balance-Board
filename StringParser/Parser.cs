@@ -42,7 +42,6 @@ namespace edobezLib
 
             else
             {
-                //Debug.Print("Unknown command!");
                 return false;
             }
         }

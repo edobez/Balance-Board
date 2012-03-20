@@ -10,38 +10,36 @@ namespace BalanceBoard
         /// <summary>
         /// PWM port.
         /// </summary>
-        private PWM m_pin;
+        PWM pwmPin;
 
         /// <summary>
         /// Frequency of the PWM.
         /// </summary>
-        private int m_frequency;
+        int frequency;
 
-        private OutputPort enablePort;
+        /// <summary>
+        /// Enable pin of the motor (of the L298 IC).
+        /// </summary>
+        OutputPort enablePin;
 
-        public Motor(PWM.Pin pin,Cpu.Pin enablePin, int frequency)
+        /// <summary>
+        /// Dead zone of the motor. Quantity of duty cycle that is unseen by the motor. The interval is symmetrical so this is the semi-amplitude.
+        /// </summary>
+        int deadzone;
+
+        public Motor(PWM.Pin pPin,Cpu.Pin ePin, int freq)
         {
-            m_pin = new PWM(pin);
-            m_frequency = frequency;
-            enablePort = new OutputPort(enablePin, true);
+            pwmPin = new PWM(pPin);
+            frequency = freq;
+            enablePin = new OutputPort(ePin, true);
         }
 
         ~Motor()
         {
-            m_pin.Dispose();
-            enablePort.Dispose();
+            pwmPin.Dispose();
+            enablePin.Dispose();
             Debug.Print("PWM pin disposed");
         }
-
-        ///// <summary>
-        ///// Assegna il duty cycle del dispositivo di potenza.
-        ///// </summary>
-        ///// <param name="dutyCycle">Duty cycle in byte</param>
-        //public void set(byte dutyCycle)
-        //{
-        //    if (dutyCycle > 100) throw new ArgumentOutOfRangeException();
-        //    else m_pin.Set(m_frequency, dutyCycle);
-        //}
 
         /// <summary>
         /// Assegna il duty cycle.
@@ -49,31 +47,35 @@ namespace BalanceBoard
         /// <param name="dutyCycle">Duty cycle in double</param>
         public void Set(float dutyCycle)
         {
-            float temp;
-            if (dutyCycle >= 50) temp = dutyCycle + 15;
-            else temp = dutyCycle - 15;
-
-            if (temp > 100 || temp < 0) throw new ArgumentOutOfRangeException();
+            if (enablePin.Read())  // Se il pin enable e' alto (quindi enable spento) la funzione mette la PWM a 50%.
+            {
+                pwmPin.Set(frequency, 50);
+            }
             else
             {
-                uint period = (uint) (1e9 / m_frequency);
-                uint highTime = (uint)(period / 100 * temp);
+                float newDutyCycle;
+                if (dutyCycle >= 50) newDutyCycle = dutyCycle + deadzone;
+                else newDutyCycle = dutyCycle - deadzone;
 
-                m_pin.SetPulse(period, highTime);
+                if (newDutyCycle > 100 || newDutyCycle < 0) throw new ArgumentOutOfRangeException();
+                else
+                {
+                    uint period = (uint)(1e9 / frequency);
+                    uint highTime = (uint)(period / 100 * newDutyCycle);
+
+                    pwmPin.SetPulse(period, highTime);
+                }
             }
         }
 
         public void Enable()
         {
-            enablePort.Write(false);
+            enablePin.Write(false);
         }
 
         public void Disable()
         {
-            enablePort.Write(true);
+            enablePin.Write(true);
         }
-
-
-        
     }
 }

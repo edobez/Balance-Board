@@ -105,24 +105,22 @@ namespace BalanceBoard
             Parser.addCommand("mt", Parser_onMotorTest);
             Parser.addCommand("pidstop", Parser_onPidStop);
             Parser.addCommand("pidstart", Parser_onPidStart);
+            Parser.addCommand("rq", Parser_onSerialMonitor);
 
             // Eventi interrupt
             //button[(int)Button.menu].OnInterrupt += new NativeEventHandler(menuBut_OnInterrupt);
             //button[(int)Button.enter].OnInterrupt += new NativeEventHandler(enterBut_OnInterrupt);
 
             // Definizione timer
-            Timer control_timer = new Timer(new TimerCallback(Control), null, 0, 10);
+            Timer sensacq_timer = new Timer(new TimerCallback(SensAcq), null, 0, 10);
+            Timer control_timer = new Timer(new TimerCallback(Control), null, 0, 25);
             Timer display_timer = new Timer(new TimerCallback(Display), null, 0, 500);
 
             Thread.Sleep(Timeout.Infinite);
         }
 
-        static void Control(object state)
+        static void SensAcq(object state)
         {
-            led.Write(!led.Read());
-
-            begin = DateTime.Now;
-
             // Algoritmo angolo
             for (int i = 0; i < 6; i++)
             {
@@ -135,6 +133,13 @@ namespace BalanceBoard
             Acc.compute();
             Gyro.compute();
             Imu.compute();
+        }
+
+        static void Control(object state)
+        {
+            led.Write(!led.Read());
+
+            //begin = DateTime.Now;
 
             // Algoritmo PID
             Pid1.ProcessVariable = Imu.AngleXZ;
@@ -144,10 +149,10 @@ namespace BalanceBoard
             Pid2.Compute();
 
             // Invio PID output values ai motori
-            //Motor1.set(Pid1.OutputValue);
+            Motor1.Set(Pid1.OutputValue);
             Motor2.Set(Pid2.OutputValue);
 
-            duration = (DateTime.Now - begin);
+            //duration = (DateTime.Now - begin);
 
             // In teoria velocizza lo scheduling...
             Thread.Sleep(0);
@@ -159,6 +164,8 @@ namespace BalanceBoard
             Debug.Print("Angles: " + Imu.AngleXZ.ToString("f0") + "," + Imu.AngleYZ.ToString("f0"));
             Debug.Print("Output variables: " + Pid1.OutputValue.ToString("f1") + "," + Pid2.OutputValue.ToString("f1"));
             Debug.Print("Control run time: " + duration.Milliseconds);
+
+            Parser_onSerialMonitor(null, 0);
 
             //switch (currentMenu)
             //{
@@ -213,7 +220,7 @@ namespace BalanceBoard
                 {
                     string message = "Comando sconosciuto";
                     Debug.Print(message);
-                    UART_PrintString(message);
+                    //UART_PrintString(message);
                 }
             }
         }
@@ -324,6 +331,13 @@ namespace BalanceBoard
                 Debug.Print(message);
                 UART_PrintString(message);
             }
+        }
+
+        static void Parser_onSerialMonitor(string[] args, int argNum)
+        {
+            string message;
+            message = Imu.AngleXZ.ToString("f1") + "," + Imu.AngleYZ.ToString("f1");
+            UART_PrintString(message);
         }
 
         static void Parser_onMotorTest(string[] args, int argNum)
