@@ -27,6 +27,19 @@ namespace BalanceBoard
         /// </summary>
         int deadzone;
 
+        public int Deadzone
+        {
+            get;
+            set
+            {
+                if (value >= 0 && value <= 30)
+                {
+                    deadzone = value;
+                }
+                else throw new ArgumentOutOfRangeException("value", "Valore deve essere compreso fra 0 e 30");
+            }
+        }
+
         public Motor(PWM.Pin pPin,Cpu.Pin ePin, int freq)
         {
             pwmPin = new PWM(pPin);

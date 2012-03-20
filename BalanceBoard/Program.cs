@@ -68,17 +68,20 @@ namespace BalanceBoard
             //button[(int)Button.up] = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di32, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
             //button[(int)Button.down] = new InterruptPort((Cpu.Pin)FEZ_Pin.Interrupt.Di30, true, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeLow);
 
-            // Init uscite
-            led = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.LED, false);
-            Motor1 = new Motor(PWM.Pin.PWM2, (Cpu.Pin)FEZ_Pin.Digital.Di8, 20000);
-            Motor2 = new Motor(PWM.Pin.PWM1, (Cpu.Pin)FEZ_Pin.Digital.Di11, 20000);
-
             // Inizializzazione LCD
             //var lcdProvider = new GpioLcdTransferProvider((Cpu.Pin)FEZ_Pin.Digital.Di2, (Cpu.Pin)FEZ_Pin.Digital.Di3,
             //    (Cpu.Pin)FEZ_Pin.Digital.Di4, (Cpu.Pin)FEZ_Pin.Digital.Di5, (Cpu.Pin)FEZ_Pin.Digital.Di6,
             //    (Cpu.Pin)FEZ_Pin.Digital.Di7);
             //myLcd = new Lcd(lcdProvider);
             //myLcd.Begin(16, 2);
+
+            // Init uscite
+            led = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.LED, false);
+            Motor1 = new Motor(PWM.Pin.PWM2, (Cpu.Pin)FEZ_Pin.Digital.Di8, 20000);
+            Motor2 = new Motor(PWM.Pin.PWM1, (Cpu.Pin)FEZ_Pin.Digital.Di11, 20000);
+
+            Motor1.Deadzone = 15;
+            Motor2.Deadzone = 15;
 
             // Init sensore e PID
             Acc = new Accelerometer();
@@ -133,6 +136,8 @@ namespace BalanceBoard
             Acc.compute();
             Gyro.compute();
             Imu.compute();
+
+            Thread.Sleep(0);
         }
 
         static void Control(object state)
@@ -165,7 +170,7 @@ namespace BalanceBoard
             Debug.Print("Output variables: " + Pid1.OutputValue.ToString("f1") + "," + Pid2.OutputValue.ToString("f1"));
             Debug.Print("Control run time: " + duration.Milliseconds);
 
-            Parser_onSerialMonitor(null, 0);
+            Parser_onSerialMonitor(null, 0);  // temporaneo, solo per far mandare sempre i dati seriali
 
             //switch (currentMenu)
             //{
@@ -336,7 +341,9 @@ namespace BalanceBoard
         static void Parser_onSerialMonitor(string[] args, int argNum)
         {
             string message;
-            message = Imu.AngleXZ.ToString("f1") + "," + Imu.AngleYZ.ToString("f1");
+            //Angolo xz, setpoint xz, sforzo di controllo xz
+            message = Imu.AngleXZ.ToString("f1") + "," + Pid1.SetPoint + "," + Pid1.OutputValue  + ",";
+            message += Imu.AngleYZ.ToString("f1") + "," + Pid2.SetPoint + "," + Pid2.OutputValue;
             UART_PrintString(message);
         }
 
