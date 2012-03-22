@@ -31,15 +31,15 @@ namespace BalanceBoard
 
         // Definizione uscite
         static OutputPort led;
-        static Motor Motor1, Motor2;
+        static Motor MotorA, MotorB;
 
         // Definizioni oggetti
         static Accelerometer Acc;
         static Gyroscope Gyro;
         static IMU Imu;
 
-        static PID Pid1;
-        static PID Pid2;
+        static PID PidA;
+        static PID PidB;
 
         static SerialPort UART;
         static StringParser Parser;
@@ -77,18 +77,18 @@ namespace BalanceBoard
 
             // Init uscite
             led = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.LED, false);
-            Motor1 = new Motor(PWM.Pin.PWM2, (Cpu.Pin)FEZ_Pin.Digital.Di8, 20000);
-            Motor2 = new Motor(PWM.Pin.PWM1, (Cpu.Pin)FEZ_Pin.Digital.Di11, 20000);
+            MotorA = new Motor(PWM.Pin.PWM2, (Cpu.Pin)FEZ_Pin.Digital.Di8, 20000);
+            MotorB = new Motor(PWM.Pin.PWM5, (Cpu.Pin)FEZ_Pin.Digital.Di4, 20000);
 
-            Motor1.Deadzone = 15;
-            Motor2.Deadzone = 15;
+            MotorA.Deadzone = 10;
+            MotorB.Deadzone = 10;
 
             // Init sensore e PID
             Acc = new Accelerometer();
             Gyro = new Gyroscope();
             Imu = new IMU(Acc,Gyro);
-            Pid1 = new PID(1, 0 , 0, -90, 90, 0, 100);
-            Pid2 = new PID(1, 0, 0, -90, 90, 15, 85);
+            PidA = new PID(1, 0 , 0, -90, 90, MotorA.Deadzone, (100 - MotorA.Deadzone));
+            PidB = new PID(1, 0, 0, -90, 90, MotorB.Deadzone, (100 - MotorB.Deadzone));
 
             Acc.Invert = new int[] { -1, -1, -1 };
             Gyro.Invert = new int[] { -1, -1 };
@@ -96,7 +96,7 @@ namespace BalanceBoard
             Gyro.Offset = new float[] { 1328, 1331 };
 
             // Init porta seriale e parser
-            UART = new SerialPort("COM2", 57600);
+            UART = new SerialPort("COM2", 115200);
             UART.ReadTimeout = 200;
             UART.Open();
             UART.DataReceived += new SerialDataReceivedEventHandler(UART_DataReceived);
@@ -117,7 +117,7 @@ namespace BalanceBoard
             // Definizione timer
             Timer sensacq_timer = new Timer(new TimerCallback(SensAcq), null, 0, 10);
             Timer control_timer = new Timer(new TimerCallback(Control), null, 0, 25);
-            Timer display_timer = new Timer(new TimerCallback(Display), null, 0, 500);
+            Timer display_timer = new Timer(new TimerCallback(Display), null, 0, 50);
 
             Thread.Sleep(Timeout.Infinite);
         }
@@ -147,15 +147,15 @@ namespace BalanceBoard
             //begin = DateTime.Now;
 
             // Algoritmo PID
-            Pid1.ProcessVariable = Imu.AngleXZ;
-            Pid2.ProcessVariable = Imu.AngleYZ;
+            PidA.ProcessVariable = Imu.AngleXZ;
+            PidB.ProcessVariable = Imu.AngleYZ;
 
-            Pid1.Compute();
-            Pid2.Compute();
+            PidA.Compute();
+            PidB.Compute();
 
             // Invio PID output values ai motori
-            Motor1.Set(Pid1.OutputValue);
-            Motor2.Set(Pid2.OutputValue);
+            MotorA.Set(PidA.OutputValue);
+            MotorB.Set(PidB.OutputValue);
 
             //duration = (DateTime.Now - begin);
 
@@ -166,9 +166,9 @@ namespace BalanceBoard
 
         static void Display(object state)
         {
-            Debug.Print("Angles: " + Imu.AngleXZ.ToString("f0") + "," + Imu.AngleYZ.ToString("f0"));
-            Debug.Print("Output variables: " + Pid1.OutputValue.ToString("f1") + "," + Pid2.OutputValue.ToString("f1"));
-            Debug.Print("Control run time: " + duration.Milliseconds);
+            //Debug.Print("Angles: " + Imu.AngleXZ.ToString("f0") + "," + Imu.AngleYZ.ToString("f0"));
+            //Debug.Print("Output variables: " + PidA.OutputValue.ToString("f1") + "," + PidB.OutputValue.ToString("f1"));
+            //Debug.Print("Control run time: " + duration.Milliseconds);
 
             Parser_onSerialMonitor(null, 0);  // temporaneo, solo per far mandare sempre i dati seriali
 
@@ -239,7 +239,7 @@ namespace BalanceBoard
         static void Parser_onPing(string[] args, int argNum)
         {
             Debug.Print("Pong!");
-            UART_PrintString("Pong!");
+            //UART_PrintString("Pong!");
         }
 
         static void Parser_onPid(string[] args, int argNum)
@@ -249,59 +249,59 @@ namespace BalanceBoard
                 int ch = int.Parse(args[0]);
                 if (ch == 1)
                 {
-                    Pid1.PGain = (float)Double.Parse(args[1]);
-                    Pid1.IGain = (float)Double.Parse(args[2]);
-                    Pid1.DGain = (float)Double.Parse(args[3]);
-                    string message = "Nuovi parametri del canale " + ch + ": " + Pid1.PGain.ToString("f2") + "," + Pid1.IGain.ToString("f2") + "," + Pid1.DGain.ToString("f2");
+                    PidA.PGain = (float)Double.Parse(args[1]);
+                    PidA.IGain = (float)Double.Parse(args[2]);
+                    PidA.DGain = (float)Double.Parse(args[3]);
+                    string message = "Nuovi parametri del canale " + ch + ": " + PidA.PGain.ToString("f2") + "," + PidA.IGain.ToString("f2") + "," + PidA.DGain.ToString("f2");
                     Debug.Print(message);
-                    UART_PrintString(message);
+                    //UART_PrintString(message);
                 }
                 else if (ch == 2)
                 {
-                    Pid2.PGain = (float)Double.Parse(args[1]);
-                    Pid2.IGain = (float)Double.Parse(args[2]);
-                    Pid2.DGain = (float)Double.Parse(args[3]);
-                    string message = "Nuovi parametri del canale " + ch + ": " + Pid2.PGain + "," + Pid2.IGain + "," + Pid2.DGain;
+                    PidB.PGain = (float)Double.Parse(args[1]);
+                    PidB.IGain = (float)Double.Parse(args[2]);
+                    PidB.DGain = (float)Double.Parse(args[3]);
+                    string message = "Nuovi parametri del canale " + ch + ": " + PidB.PGain + "," + PidB.IGain + "," + PidB.DGain;
                     Debug.Print(message);
-                    UART_PrintString(message);
+                    //UART_PrintString(message);
                 }
                 else
                 {
                     string message = "Argomento 1 puo' essere 1 o 2";
                     Debug.Print(message);
-                    UART_PrintString(message);
+                    //UART_PrintString(message);
                 }
             }
             else
             {
                 string message = "Numero degli argomenti deve essere uguale a 4";
                 Debug.Print(message);
-                UART_PrintString(message);
+                //UART_PrintString(message);
             }
         }
 
         static void Parser_onPidStart(string[] args, int argNum)
         {
-            Motor1.Enable();
-            Motor2.Enable();
-            Pid1.Enable();
-            Pid2.Enable();
+            MotorA.Enable();
+            MotorB.Enable();
+            PidA.Enable();
+            PidB.Enable();
 
             string message = "Pid Started!";
-            //Debug.Print(message);
-            UART_PrintString(message);
+            Debug.Print(message);
+            //UART_PrintString(message);
         }
 
         static void Parser_onPidStop(string[] args, int argNum)
         {
-            Motor1.Disable();
-            Motor2.Disable();
-            Pid1.Disable();
-            Pid2.Disable();
+            MotorA.Disable();
+            MotorB.Disable();
+            PidA.Disable();
+            PidB.Disable();
 
             string message = "Pid Stopped!";
-            //Debug.Print(message);
-            UART_PrintString(message);
+            Debug.Print(message);
+            //UART_PrintString(message);
         }
 
         static void Parser_onSetPoint(string[] args, int argNum)
@@ -311,30 +311,30 @@ namespace BalanceBoard
                 int ch = int.Parse(args[0]);
                 if (ch == 1)
                 {
-                    Pid1.SetPoint = (float) Double.Parse(args[1]);
-                    string message = "Nuovo setpoint del canale " + ch + ": " + Pid1.SetPoint;
+                    PidA.SetPoint = (float) Double.Parse(args[1]);
+                    string message = "Nuovo setpoint del canale " + ch + ": " + PidA.SetPoint;
                     Debug.Print(message);
-                    UART_PrintString(message);
+                    //UART_PrintString(message);
                 }
                 else if (ch == 2)
                 {
-                    Pid2.SetPoint = (float) Double.Parse(args[1]);
-                    string message = "Nuovo setpoint del canale " + ch + ": " + Pid2.SetPoint;
+                    PidB.SetPoint = (float) Double.Parse(args[1]);
+                    string message = "Nuovo setpoint del canale " + ch + ": " + PidB.SetPoint;
                     Debug.Print(message);
-                    UART_PrintString(message);
+                    //UART_PrintString(message);
                 }
                 else
                 {
                     string message = "Argomento 1 puo' essere 1 o 2";
                     Debug.Print(message);
-                    UART_PrintString(message);
+                    //UART_PrintString(message);
                 }
             }
             else
             {
                 string message = "Numero degli argomenti deve essere uguale a 2";
                 Debug.Print(message);
-                UART_PrintString(message);
+                //UART_PrintString(message);
             }
         }
 
@@ -342,51 +342,63 @@ namespace BalanceBoard
         {
             string message;
             //Angolo xz, setpoint xz, sforzo di controllo xz
-            message = Imu.AngleXZ.ToString("f1") + "," + Pid1.SetPoint + "," + Pid1.OutputValue  + ",";
-            message += Imu.AngleYZ.ToString("f1") + "," + Pid2.SetPoint + "," + Pid2.OutputValue;
+            message = Imu.AngleXZ.ToString("f1") + "," + PidA.SetPoint.ToString("f1") + "," + PidA.OutputValue.ToString("f1") + ",";
+            message += Imu.AngleYZ.ToString("f1") + "," + PidB.SetPoint.ToString("f1") + "," + PidB.OutputValue.ToString("f1");
             UART_PrintString(message);
         }
 
         static void Parser_onMotorTest(string[] args, int argNum)
         {
             Motor motor;
-            if (argNum == 3)
+            if (argNum == 2)
             {
                 int motorNum = int.Parse(args[0]);
                 int testNum = int.Parse(args[1]);
 
                 if (motorNum == 1)
                 {
-                    motor = Motor1;
+                    motor = MotorA;
                 }
                 else if (motorNum == 2)
                 {
-                    motor = Motor2;
+                    motor = MotorB;
                 }
                 else
                 {
                     string message = "Errore parametro motore";
                     Debug.Print(message);
-                    UART_PrintString(message);
+                    //UART_PrintString(message);
                     return;
                 }
 
                 switch (testNum)
                 {
+                    case 0:
+                        motor.Disable();
+                        motor.SetTrue(50);
+                        break;
                     case 1: // Motore avanti al 50% per 1 sec.
-                        motor.Set(75);
+                        motor.Enable();
+                        motor.SetTrue(95);
                         Thread.Sleep(1000);
-                        motor.Set(50);
+                        motor.Disable();
+                        motor.SetTrue(50);
                         break;
                     case 2: // Motore indietro al 50% per 1 sec.
-                        motor.Set(25);
+                        motor.Enable();
+                        motor.SetTrue(5);
                         Thread.Sleep(1000);
-                        motor.Set(50);
+                        motor.Disable();
+                        motor.SetTrue(50);
+                        break;
+                    case 3: // Motore indietro al 50% per 1 sec.
+                        motor.Enable();
+                        motor.SetTrue(99);
                         break;
                     default:
                         string message = "Numero test errato";
                         Debug.Print(message);
-                        UART_PrintString(message);
+                        //UART_PrintString(message);
                         break;
                 }
 
@@ -395,7 +407,7 @@ namespace BalanceBoard
             {
                 string message = "Numero degli argomenti deve essere uguale a 3";
                 Debug.Print(message);
-                UART_PrintString(message);
+                //UART_PrintString(message);
             }
         }
 

@@ -29,7 +29,10 @@ namespace BalanceBoard
 
         public int Deadzone
         {
-            get;
+            get
+            {
+                return deadzone;
+            }
             set
             {
                 if (value >= 0 && value <= 30)
@@ -70,14 +73,19 @@ namespace BalanceBoard
                 if (dutyCycle >= 50) newDutyCycle = dutyCycle + deadzone;
                 else newDutyCycle = dutyCycle - deadzone;
 
-                if (newDutyCycle > 100 || newDutyCycle < 0) throw new ArgumentOutOfRangeException();
-                else
-                {
-                    uint period = (uint)(1e9 / frequency);
-                    uint highTime = (uint)(period / 100 * newDutyCycle);
+                SetTrue(newDutyCycle);
+            }
+        }
 
-                    pwmPin.SetPulse(period, highTime);
-                }
+        public void SetTrue(float dutyCycle)
+        {
+            if (dutyCycle > 100 || dutyCycle < 0) throw new ArgumentOutOfRangeException();
+            else
+            {
+                uint period = (uint)(1e9 / frequency);
+                uint highTime = (uint)(period / 100 * dutyCycle);
+
+                pwmPin.SetPulse(period, highTime);
             }
         }
 
