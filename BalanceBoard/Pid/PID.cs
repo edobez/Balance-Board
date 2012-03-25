@@ -153,7 +153,6 @@ namespace PIDLibrary
             float partialSum = 0.0f;
             DateTime nowTime = DateTime.Now;
 
-            // Non sono sicuro che MinValue possa essere uguale a NULL
             if (lastUpdate != DateTime.MinValue)
             {
                 float dT = (float)(nowTime - lastUpdate).Milliseconds / (float)1000;
@@ -177,7 +176,7 @@ namespace PIDLibrary
             lastInput = input;
 
             //Now we have to scale the output value to match the requested scale
-            float outReal = pTerm + iTerm + dTerm; //messo il meno all'ultimo termine ma non ne sono sicuro
+            float outReal = pTerm + iTerm + dTerm; 
 
             outReal = Clamp(outReal, -1.0f, 1.0f);
             outReal = ScaleValue(outReal, -1.0f, 1.0f, outputMin, outputMax);
