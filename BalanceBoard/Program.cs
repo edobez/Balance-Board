@@ -10,7 +10,7 @@ using GHIElectronics.NETMF.FEZ;
 using GHIElectronics.NETMF.Hardware;
 using GHIElectronics.NETMF.USBClient;
 
-using PIDLibrary;
+//using PIDLibrary;
 using MicroLiquidCrystal;
 using edobezLib;
 
@@ -77,18 +77,18 @@ namespace BalanceBoard
 
             // Init uscite
             led = new OutputPort((Cpu.Pin)FEZ_Pin.Digital.LED, false);
-            MotorA = new Motor(PWM.Pin.PWM2, (Cpu.Pin)FEZ_Pin.Digital.Di8, 20000);
-            MotorB = new Motor(PWM.Pin.PWM5, (Cpu.Pin)FEZ_Pin.Digital.Di4, 20000);
-
-            MotorA.Deadzone = 10;
-            MotorB.Deadzone = 10;
+            MotorA = new Motor(PWM.Pin.PWM2, (Cpu.Pin)FEZ_Pin.Digital.Di8, 25000);
+            MotorB = new Motor(PWM.Pin.PWM5, (Cpu.Pin)FEZ_Pin.Digital.Di4, 25000);
 
             // Init sensore e PID
             Acc = new Accelerometer();
             Gyro = new Gyroscope();
             Imu = new IMU(Acc,Gyro);
-            PidA = new PID(1, 0 , 0, -90, 90, MotorA.Deadzone, (100 - MotorA.Deadzone));
-            PidB = new PID(1, 0, 0, -90, 90, MotorB.Deadzone, (100 - MotorB.Deadzone));
+            PidA = new PID(1, 0 , 0, -90, 90, 0, 100);
+            PidB = new PID(1, 0, 0, -90, 90, 0, 100);
+
+            PidA.Deadzone = 10;
+            PidB.Deadzone = 10;
 
             Acc.Invert = new int[] { -1, -1, -1 };
             Gyro.Invert = new int[] { -1, -1 };
@@ -147,8 +147,8 @@ namespace BalanceBoard
             //begin = DateTime.Now;
 
             // Algoritmo PID
-            PidA.ProcessVariable = Imu.AngleXZ;
-            PidB.ProcessVariable = Imu.AngleYZ;
+            PidA.Input = Imu.AngleXZ;
+            PidB.Input = Imu.AngleYZ;
 
             PidA.Compute();
             PidB.Compute();
@@ -284,8 +284,8 @@ namespace BalanceBoard
         {
             MotorA.Enable();
             MotorB.Enable();
-            PidA.Enable();
-            PidB.Enable();
+            PidA.SetMode(PID.Mode.Automatic);
+            PidB.SetMode(PID.Mode.Automatic);
 
             string message = "Pid Started!";
             Debug.Print(message);
@@ -296,8 +296,8 @@ namespace BalanceBoard
         {
             MotorA.Disable();
             MotorB.Disable();
-            PidA.Disable();
-            PidB.Disable();
+            PidA.SetMode(PID.Mode.Manual);
+            PidB.SetMode(PID.Mode.Manual);
 
             string message = "Pid Stopped!";
             Debug.Print(message);
@@ -375,25 +375,22 @@ namespace BalanceBoard
                 {
                     case 0:
                         motor.Disable();
-                        motor.SetTrue(50);
                         break;
                     case 1: // Motore avanti al 50% per 1 sec.
                         motor.Enable();
-                        motor.SetTrue(95);
+                        motor.Set(95);
                         Thread.Sleep(1000);
                         motor.Disable();
-                        motor.SetTrue(50);
                         break;
                     case 2: // Motore indietro al 50% per 1 sec.
                         motor.Enable();
-                        motor.SetTrue(5);
+                        motor.Set(5);
                         Thread.Sleep(1000);
                         motor.Disable();
-                        motor.SetTrue(50);
                         break;
                     case 3: // Motore indietro al 50% per 1 sec.
                         motor.Enable();
-                        motor.SetTrue(99);
+                        motor.Set(100);
                         break;
                     default:
                         string message = "Numero test errato";

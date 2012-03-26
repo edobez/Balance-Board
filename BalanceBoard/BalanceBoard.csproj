@@ -57,6 +57,7 @@
     <Compile Include="LCD\ILcdTransferProvider.cs" />
     <Compile Include="LCD\Lcd.cs" />
     <Compile Include="Motor.cs" />
+    <Compile Include="PID\PID2.cs" />
     <Compile Include="PID\DataDelegates.cs" />
     <Compile Include="PID\PID.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

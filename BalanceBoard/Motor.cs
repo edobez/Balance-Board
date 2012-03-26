@@ -22,27 +22,6 @@ namespace BalanceBoard
         /// </summary>
         OutputPort enablePin;
 
-        /// <summary>
-        /// Dead zone of the motor. Quantity of duty cycle that is unseen by the motor. The interval is symmetrical so this is the semi-amplitude.
-        /// </summary>
-        int deadzone;
-
-        public int Deadzone
-        {
-            get
-            {
-                return deadzone;
-            }
-            set
-            {
-                if (value >= 0 && value <= 30)
-                {
-                    deadzone = value;
-                }
-                else throw new ArgumentOutOfRangeException("value", "Valore deve essere compreso fra 0 e 30");
-            }
-        }
-
         public Motor(PWM.Pin pPin,Cpu.Pin ePin, int freq)
         {
             pwmPin = new PWM(pPin);
@@ -63,29 +42,17 @@ namespace BalanceBoard
         /// <param name="dutyCycle">Duty cycle in double</param>
         public void Set(float dutyCycle)
         {
-            if (enablePin.Read())  // Se il pin enable e' alto (quindi enable spento) la funzione mette la PWM a 50%.
-            {
-                pwmPin.Set(frequency, 50);
-            }
+            if (enablePin.Read()) return; // Se il pin enable e' alto (quindi enable spento) la funzione mette la PWM a 50%.
             else
             {
-                float newDutyCycle;
-                if (dutyCycle >= 50) newDutyCycle = dutyCycle + deadzone;
-                else newDutyCycle = dutyCycle - deadzone;
+                if (dutyCycle > 100 || dutyCycle < 0) throw new ArgumentOutOfRangeException();
+                else
+                {
+                    uint period = (uint)(1e9 / frequency);
+                    uint highTime = (uint)(period / 100 * dutyCycle);
 
-                SetTrue(newDutyCycle);
-            }
-        }
-
-        public void SetTrue(float dutyCycle)
-        {
-            if (dutyCycle > 100 || dutyCycle < 0) throw new ArgumentOutOfRangeException();
-            else
-            {
-                uint period = (uint)(1e9 / frequency);
-                uint highTime = (uint)(period / 100 * dutyCycle);
-
-                pwmPin.SetPulse(period, highTime);
+                    pwmPin.SetPulse(period, highTime);
+                }
             }
         }
 
@@ -97,6 +64,7 @@ namespace BalanceBoard
         public void Disable()
         {
             enablePin.Write(true);
+            Set(50);
         }
     }
 }
