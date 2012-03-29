@@ -23,27 +23,37 @@ namespace edobezLib
         public bool parse(byte[] b)
         {
             // Array di char -> Stringa codificata in UTF8 -> Tutto lowercase -> Tolte terminazioni -> Diviso in un array
-            string[] rx_dataString = (new string(Encoding.UTF8.GetChars(b))).ToLower().TrimEnd('\r','\n').Split(','); 
-            string command = rx_dataString[0];
-
-            string[] par = new string[rx_dataString.Length - 1];
-            Array.Copy(rx_dataString, 1, par, 0, par.Length);
-
-            if (commands.Contains(command))
+            try
             {
-                ParserHandler handler = commands[command] as ParserHandler;
+                string[] rx_dataString = (new string(Encoding.UTF8.GetChars(b))).ToLower().TrimEnd('\r', '\n').Split(',');
+                string command = rx_dataString[0];
 
-                if (handler != null)
+                string[] par = new string[rx_dataString.Length - 1];
+                Array.Copy(rx_dataString, 1, par, 0, par.Length);
+
+                if (commands.Contains(command))
                 {
-                    handler(par, par.Length);
-                }
-                return true;
-            }
+                    ParserHandler handler = commands[command] as ParserHandler;
 
-            else
+                    if (handler != null)
+                    {
+                        handler(par, par.Length);
+                    }
+                    return true;
+                }
+
+                else
+                {
+                    return false;
+                }
+            }
+            catch (Exception e)
             {
+                Debug.Print(e.Message);
                 return false;
             }
+            
+
         }
     }
 }

@@ -135,9 +135,11 @@ namespace edobezLib
             outputMax = oMax;
             outputMin = oMin;
 
+            iTerm = 0.0f;
+
             //TODO: inizializzare a metà dell'uscita possibile (outmax - outmin)/2
             //setpoint = 0;
-            //output = 50;  
+            output = 50;  
         }
 
         #endregion
@@ -146,6 +148,8 @@ namespace edobezLib
 
         public void Compute()
         {
+            if (!inAuto) return; // Se la modalita' e' manuale non parte
+
             //We need to scale the pv to +/- 100%, but first clamp it
             input = Clamp(input, inputMin, inputMax);
             input = ScaleValue(input, inputMin, inputMax, -1.0f, 1.0f);
@@ -168,7 +172,7 @@ namespace edobezLib
                 float dInput = (input - lastInput) / timeChange;
 
                 pTerm = kp * error;
-                iTerm += ki * error * timeChange; // correzione per cambi ai parametri
+                iTerm += ki * (error * timeChange); // correzione per cambi ai parametri
                 //TODO: provare correzione suggerita da Will, su un commento della pagina di Brett
                 if (iTerm > 1.0f) iTerm = 1.0f;         // correzione windup
                 else if (iTerm < -1.0f) iTerm = -1.0f;  // ^^
@@ -199,6 +203,7 @@ namespace edobezLib
             inAuto = newAuto;
         }
 
+        //TODO: verificare questa funzione! il settaggio dell'iTerm non mi piace..
         public void Init()
         {
             input = Clamp(input, inputMin, inputMax);

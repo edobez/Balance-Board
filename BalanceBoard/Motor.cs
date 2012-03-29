@@ -26,7 +26,8 @@ namespace BalanceBoard
         {
             pwmPin = new PWM(pPin);
             frequency = freq;
-            enablePin = new OutputPort(ePin, true);
+            enablePin = new OutputPort(ePin, true); // PArte con enable alto (quindi motore spento)
+            Set(50);
         }
 
         ~Motor()

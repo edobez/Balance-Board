@@ -87,8 +87,11 @@ namespace BalanceBoard
             PidA = new PID(1, 0 , 0, -90, 90, 0, 100);
             PidB = new PID(1, 0, 0, -90, 90, 0, 100);
 
-            PidA.Deadzone = 10;
-            PidB.Deadzone = 10;
+            PidA.Deadzone = 12;
+            PidB.Deadzone = 15;
+
+            PidA.SetMode(PID.Mode.Manual);
+            PidB.SetMode(PID.Mode.Manual);
 
             Acc.Invert = new int[] { -1, -1, -1 };
             Gyro.Invert = new int[] { -1, -1 };
@@ -116,7 +119,7 @@ namespace BalanceBoard
 
             // Definizione timer
             Timer sensacq_timer = new Timer(new TimerCallback(SensAcq), null, 0, 10);
-            Timer control_timer = new Timer(new TimerCallback(Control), null, 0, 25);
+            Timer control_timer = new Timer(new TimerCallback(Control), null, 0, 20);
             Timer display_timer = new Timer(new TimerCallback(Display), null, 0, 50);
 
             Thread.Sleep(Timeout.Infinite);
